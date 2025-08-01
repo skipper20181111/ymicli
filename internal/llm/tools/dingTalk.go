@@ -100,23 +100,44 @@ func (v *dingTalkTool) Run(ctx context.Context, call ToolCall) (ToolResponse, er
 	//unionid := client.GetUnionid("宋睿")
 	//DocNodeInfo := client.GetDocNodeInfo(unionid, params.Url)
 	response, _ := utilFunction.DownLoadDocInit(client.AccessToken, params.NodeId)
-	var wg sync.WaitGroup // 声明一个 WaitGroup
+	// 声明一个 WaitGroup 和一个上下文
+	var wg sync.WaitGroup
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second) // 设置5秒超时
+	defer cancel()                                                          // 确保在函数退出时调用 cancel
+	nocontent := false
+
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for update := range *talkChan {
-			parseInt, _ := strconv.ParseInt(update.TaskID, 10, 64)
-			if response.Result.TaskId == parseInt {
-				file, err := utilFunction.DownloadMarkdownFile(update.URL)
-				if err != nil {
-					fmt.Println(err.Error())
+		for {
+			select {
+			case update, ok := <-*talkChan:
+				if !ok {
+					// 通道已关闭
+					return
 				}
-				MarkdownStr = file
-				break
+				// 处理接收到的数据
+				parseInt, _ := strconv.ParseInt(update.TaskID, 10, 64)
+				if response.Result.TaskId == parseInt {
+					file, err := utilFunction.DownloadMarkdownFile(update.URL)
+					if err != nil {
+						fmt.Println(err.Error())
+					}
+					MarkdownStr = file
+					return // 找到并处理后退出协程
+				}
+			case <-ctx.Done():
+				// 超时或上下文被取消，退出协程
+				nocontent = true
+				return
 			}
 		}
 	}()
 	wg.Wait()
+	if nocontent {
+		return NewTextResponse("文档不存在或无权限，请让文档所有人添加“导出文档内容AI助理”作为可查看/下载权限"), nil
+
+	}
 	return NewTextResponse(MarkdownStr), nil
 }
 func GetNewLLMContext() *types.LLMConfig {
