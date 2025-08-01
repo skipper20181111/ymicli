@@ -186,6 +186,7 @@ func NewAgent(
 			tools.NewSourcegraphTool(),
 			tools.NewViewTool(lspClients, permissions, cwd),
 			tools.NewWriteTool(lspClients, permissions, history, cwd),
+			tools.NewDingTalkTool(permissions, cwd),
 		}
 
 		mcpTools := GetMCPTools(ctx, permissions, cfg)
