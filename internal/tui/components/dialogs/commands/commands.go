@@ -256,7 +256,7 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 	commands := []Command{
 		{
 			ID:          "new_session",
-			Title:       "New Session",
+			Title:       "开始新的会话",
 			Description: "start a new session",
 			Shortcut:    "ctrl+n",
 			Handler: func(cmd Command) tea.Cmd {
@@ -265,7 +265,7 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 		},
 		{
 			ID:          "switch_session",
-			Title:       "Switch Session",
+			Title:       "切换会话",
 			Description: "Switch to a different session",
 			Shortcut:    "ctrl+s",
 			Handler: func(cmd Command) tea.Cmd {
@@ -274,7 +274,7 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 		},
 		{
 			ID:          "switch_model",
-			Title:       "Switch Model",
+			Title:       "切换模型",
 			Description: "Switch to a different model",
 			Handler: func(cmd Command) tea.Cmd {
 				return util.CmdHandler(SwitchModelMsg{})
@@ -286,7 +286,7 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 	if c.sessionID != "" {
 		commands = append(commands, Command{
 			ID:          "Summarize",
-			Title:       "Summarize Session",
+			Title:       "总结会话开启新会话",
 			Description: "Summarize the current session and create a new one with the summary",
 			Handler: func(cmd Command) tea.Cmd {
 				return util.CmdHandler(CompactMsg{
@@ -371,8 +371,8 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 		},
 		{
 			ID:          "init",
-			Title:       "Initialize Project",
-			Description: "Create/Update the CRUSH.md memory file",
+			Title:       "生成XFTech.md",
+			Description: "Create/Update the XFTech.md memory file",
 			Handler: func(cmd Command) tea.Cmd {
 				return util.CmdHandler(chat.SendMsg{
 					Text: prompt.Initialize(),
@@ -381,7 +381,7 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 		},
 		{
 			ID:          "quit",
-			Title:       "Quit",
+			Title:       "退出",
 			Description: "Quit",
 			Shortcut:    "ctrl+c",
 			Handler: func(cmd Command) tea.Cmd {
