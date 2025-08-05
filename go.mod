@@ -6,11 +6,11 @@ require (
 	github.com/JohannesKaufmann/html-to-markdown v1.6.0
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/PuerkitoBio/goquery v1.9.2
-	github.com/alecthomas/chroma/v2 v2.15.0
 	github.com/alibabacloud-go/darabonba-openapi/v2 v2.1.9
 	github.com/alibabacloud-go/dingtalk v1.6.88
 	github.com/alibabacloud-go/tea v1.3.10
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.7
+	github.com/alecthomas/chroma/v2 v2.20.0
 	github.com/anthropics/anthropic-sdk-go v1.6.2
 	github.com/atotto/clipboard v0.1.4
 	github.com/aymanbagabas/go-udiff v0.3.1
@@ -31,7 +31,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/invopop/jsonschema v0.13.0
 	github.com/joho/godotenv v1.5.1
-	github.com/mark3labs/mcp-go v0.34.0
+	github.com/mark3labs/mcp-go v0.37.0
 	github.com/muesli/termenv v0.16.0
 	github.com/ncruces/go-sqlite3 v0.25.0
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
@@ -109,7 +109,7 @@ require (
 	github.com/charmbracelet/x/windows v0.2.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/disintegration/gift v1.1.2 // indirect
-	github.com/dlclark/regexp2 v1.11.4 // indirect
+	github.com/dlclark/regexp2 v1.11.5 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-logfmt/logfmt v0.6.0 // indirect
@@ -160,7 +160,7 @@ require (
 	golang.org/x/sync v0.16.0 // indirect
 	golang.org/x/sys v0.34.0
 	golang.org/x/term v0.32.0 // indirect
-	golang.org/x/text v0.25.0
+	golang.org/x/text v0.27.0
 	google.golang.org/genai v1.3.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250324211829-b45e905df463 // indirect
 	google.golang.org/grpc v1.71.0 // indirect
