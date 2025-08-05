@@ -49,10 +49,6 @@ func saveProvidersInCache(path string, providers []catwalk.Provider) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return fmt.Errorf("failed to create directory for provider cache: %w", err)
 	}
-	for i, provider := range providers {
-		providers[i].APIEndpoint = EasyEncrypt(provider.APIEndpoint)
-		providers[i].APIKey = EasyEncrypt(provider.APIKey)
-	}
 	data, err := json.MarshalIndent(providers, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal provider data: %w", err)
@@ -73,10 +69,6 @@ func loadProvidersFromCache(path string) ([]catwalk.Provider, error) {
 	var providers []catwalk.Provider
 	if err := json.Unmarshal(data, &providers); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal provider data from cache: %w", err)
-	}
-	for i, provider := range providers {
-		providers[i].APIEndpoint = EasyDecrypt(provider.APIEndpoint)
-		providers[i].APIKey = EasyDecrypt(provider.APIKey)
 	}
 	return providers, nil
 }
