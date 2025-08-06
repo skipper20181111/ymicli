@@ -288,9 +288,9 @@ func letterSStylized(stretch bool) string {
 }
 func letterX(stretch bool) string {
 	return heredoc.Doc(`
-▀▀▄ ▄▀▀
-   █
-▄▄▀ ▀▄▄
+▀▄ ▄▀
+  █
+▄▀ ▀▄
 `)
 }
 func letterF(stretch bool) string {

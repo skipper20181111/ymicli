@@ -3,6 +3,7 @@ package messages
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -19,7 +20,7 @@ import (
 )
 
 // responseContextHeight limits the number of lines displayed in tool output
-const responseContextHeight = 10
+const responseContextHeight = 30
 
 // renderer defines the interface for tool-specific rendering implementations
 type renderer interface {
@@ -801,6 +802,15 @@ func renderCodeContent(v *toolCallCmp, path, content string, offset int) string 
 	t := styles.CurrentTheme()
 	content = strings.ReplaceAll(content, "\r\n", "\n") // Normalize line endings
 	content = strings.ReplaceAll(content, "\t", "    ") // Replace tabs with spaces
+
+	// [DEBUG] Log code display information
+	originalLines := len(strings.Split(content, "\n"))
+	slog.Debug("Rendering code content",
+		"path", path,
+		"original_lines", originalLines,
+		"responseContextHeight", responseContextHeight,
+		"will_truncate", originalLines > responseContextHeight)
+
 	truncated := truncateHeight(content, responseContextHeight)
 
 	lines := strings.Split(truncated, "\n")
