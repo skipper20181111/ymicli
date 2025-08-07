@@ -80,8 +80,8 @@ func (q *quitDialogCmp) View() string {
 	}
 
 	const horizontalPadding = 3
-	yesButton := yesStyle.Padding(0, horizontalPadding).Render("Yep!")
-	noButton := noStyle.Padding(0, horizontalPadding).Render("Nope")
+	yesButton := yesStyle.Padding(0, horizontalPadding).Render("Yes")
+	noButton := noStyle.Padding(0, horizontalPadding).Render("No")
 
 	buttons := baseStyle.Width(lipgloss.Width(question)).Align(lipgloss.Right).Render(
 		lipgloss.JoinHorizontal(lipgloss.Center, yesButton, "  ", noButton),
