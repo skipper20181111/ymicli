@@ -49,6 +49,7 @@ func saveProvidersInCache(path string, providers []catwalk.Provider) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return fmt.Errorf("failed to create directory for provider cache: %w", err)
 	}
+
 	data, err := json.MarshalIndent(providers, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal provider data: %w", err)
