@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -60,6 +61,27 @@ func createOpenAIClient(opts providerClientOptions) openai.Client {
 	}
 
 	return openai.NewClient(openaiClientOptions...)
+}
+
+// isThirdPartyAPI checks if the base URL is from a third-party API provider
+func (o *openaiClient) isThirdPartyAPI() bool {
+	if o.providerOptions.baseURL == "" {
+		return false // Default OpenAI API
+	}
+
+	// Check for official OpenAI domains
+	officialDomains := []string{
+		"api.openai.com",
+		"openai.com",
+	}
+
+	for _, domain := range officialDomains {
+		if strings.Contains(o.providerOptions.baseURL, domain) {
+			return false
+		}
+	}
+
+	return true // Third-party API
 }
 
 func (o *openaiClient) convertMessages(messages []message.Message) (openaiMessages []openai.ChatCompletionMessageParamUnion) {
@@ -234,7 +256,8 @@ func (o *openaiClient) preparedParams(messages []openai.ChatCompletionMessagePar
 	if o.providerOptions.maxTokens > 0 {
 		maxTokens = o.providerOptions.maxTokens
 	}
-	if model.CanReason {
+	// Use OpenAI-specific parameters only for official OpenAI API
+	if !o.isThirdPartyAPI() && model.CanReason {
 		params.MaxCompletionTokens = openai.Int(maxTokens)
 		switch reasoningEffort {
 		case "low":
@@ -247,6 +270,7 @@ func (o *openaiClient) preparedParams(messages []openai.ChatCompletionMessagePar
 			params.ReasoningEffort = shared.ReasoningEffort(reasoningEffort)
 		}
 	} else {
+		// Use standard MaxTokens for third-party APIs or non-reasoning models
 		params.MaxTokens = openai.Int(maxTokens)
 	}
 
@@ -255,6 +279,20 @@ func (o *openaiClient) preparedParams(messages []openai.ChatCompletionMessagePar
 
 func (o *openaiClient) send(ctx context.Context, messages []message.Message, tools []tools.BaseTool) (response *ProviderResponse, err error) {
 	params := o.preparedParams(o.convertMessages(messages), o.convertTools(tools))
+
+	// Debug: Log request parameters and body
+	isThirdParty := o.isThirdPartyAPI()
+	paramsJSON, _ := json.Marshal(params)
+	slog.Info("Sending API request",
+		"provider", o.providerOptions.config.ID,
+		"model", params.Model,
+		"message_count", len(params.Messages),
+		"tool_count", len(params.Tools),
+		"base_url", o.providerOptions.baseURL,
+		"is_third_party", isThirdParty,
+		"request_body", string(paramsJSON),
+	)
+
 	attempts := 0
 	for {
 		attempts++
@@ -307,9 +345,26 @@ func (o *openaiClient) send(ctx context.Context, messages []message.Message, too
 
 func (o *openaiClient) stream(ctx context.Context, messages []message.Message, tools []tools.BaseTool) <-chan ProviderEvent {
 	params := o.preparedParams(o.convertMessages(messages), o.convertTools(tools))
-	params.StreamOptions = openai.ChatCompletionStreamOptionsParam{
-		IncludeUsage: openai.Bool(true),
+
+	// Only set StreamOptions for official OpenAI API
+	if !o.isThirdPartyAPI() {
+		params.StreamOptions = openai.ChatCompletionStreamOptionsParam{
+			IncludeUsage: openai.Bool(true),
+		}
 	}
+
+	// Debug: Log streaming request parameters and body
+	isThirdParty := o.isThirdPartyAPI()
+	paramsJSON, _ := json.Marshal(params)
+	slog.Info("Sending streaming API request",
+		"provider", o.providerOptions.config.ID,
+		"model", params.Model,
+		"message_count", len(params.Messages),
+		"tool_count", len(params.Tools),
+		"base_url", o.providerOptions.baseURL,
+		"is_third_party", isThirdParty,
+		"request_body", string(paramsJSON),
+	)
 
 	attempts := 0
 	eventChan := make(chan ProviderEvent)
