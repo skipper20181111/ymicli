@@ -365,17 +365,17 @@ func (o *openaiClient) stream(ctx context.Context, messages []message.Message, t
 	}
 
 	// Debug: Log streaming request parameters and body
-	isThirdParty := o.isThirdPartyAPI()
-	paramsJSON, _ := json.Marshal(params)
-	slog.Info("Sending streaming API request",
-		"provider", o.providerOptions.config.ID,
-		"model", params.Model,
-		"message_count", len(params.Messages),
-		"tool_count", len(params.Tools),
-		"base_url", o.providerOptions.baseURL,
-		"is_third_party", isThirdParty,
-		"request_body", string(paramsJSON),
-	)
+	//isThirdParty := o.isThirdPartyAPI()
+	//paramsJSON, _ := json.Marshal(params)
+	//slog.Info("Sending streaming API request",
+	//	"provider", o.providerOptions.config.ID,
+	//	"model", params.Model,
+	//	"message_count", len(params.Messages),
+	//	"tool_count", len(params.Tools),
+	//	"base_url", o.providerOptions.baseURL,
+	//	"is_third_party", isThirdParty,
+	//	"request_body", string(paramsJSON),
+	//)
 
 	attempts := 0
 	eventChan := make(chan ProviderEvent)
