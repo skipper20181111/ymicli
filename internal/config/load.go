@@ -23,7 +23,7 @@ import (
 	"github.com/charmbracelet/crush/internal/log"
 )
 
-const defaultCatwalkURL = "http://localhost:8080"
+const defaultCatwalkURL = "https://catwalk.charm.sh"
 
 // LoadReader config via io.Reader.
 //
