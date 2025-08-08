@@ -450,8 +450,11 @@ func (a *agent) createUserMessage(ctx context.Context, sessionID, content string
 
 func (a *agent) streamAndHandleEvents(ctx context.Context, sessionID string, msgHistory []message.Message) (message.Message, *message.Message, error) {
 	ctx = context.WithValue(ctx, tools.SessionIDContextKey, sessionID)
-	eventChan := a.provider.StreamResponse(ctx, msgHistory, slices.Collect(a.tools.Seq()))
-
+	baseTools := slices.Collect(a.tools.Seq())
+	//if a.provider.Model().Name == "Gemini 2.5 Pro" {
+	//	baseTools = baseTools[:3]
+	//}
+	eventChan := a.provider.StreamResponse(ctx, msgHistory, baseTools)
 	assistantMsg, err := a.messages.Create(ctx, sessionID, message.CreateMessageParams{
 		Role:     message.Assistant,
 		Parts:    []message.ContentPart{},
