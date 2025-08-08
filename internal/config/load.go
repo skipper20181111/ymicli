@@ -1,7 +1,9 @@
 package config
 
 import (
+	"bytes"
 	"cmp"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -24,6 +26,10 @@ import (
 const defaultCatwalkURL = "http://localhost:8080"
 
 // LoadReader config via io.Reader.
+//
+//go:embed crush.json
+var crushJson []byte
+
 func LoadReader(fd io.Reader) (*Config, error) {
 	data, err := io.ReadAll(fd)
 	if err != nil {
@@ -455,7 +461,7 @@ func loadFromConfigPaths(configPaths []string) (*Config, error) {
 
 		configs = append(configs, fd)
 	}
-
+	configs = append(configs, bytes.NewReader(crushJson))
 	return loadFromReaders(configs)
 }
 
