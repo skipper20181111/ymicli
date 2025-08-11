@@ -174,6 +174,8 @@ func (a *appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return a, util.CmdHandler(dialogs.OpenDialogMsg{
 			Model: quit.NewQuitDialog(),
 		})
+	case commands.ToggleYoloModeMsg:
+		a.app.Permissions.SetSkipRequests(!a.app.Permissions.SkipRequests())
 	case commands.ToggleHelpMsg:
 		a.status.ToggleFullHelp()
 		a.showingFullHelp = !a.showingFullHelp
@@ -264,7 +266,11 @@ func (a *appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return a, a.handleKeyPressMsg(msg)
 
 	case tea.MouseWheelMsg:
-		if !a.dialog.HasDialogs() {
+		if a.dialog.HasDialogs() {
+			u, dialogCmd := a.dialog.Update(msg)
+			a.dialog = u.(dialogs.DialogCmp)
+			cmds = append(cmds, dialogCmd)
+		} else {
 			updated, pageCmd := a.pages[a.currentPage].Update(msg)
 			a.pages[a.currentPage] = updated.(util.Model)
 			cmds = append(cmds, pageCmd)

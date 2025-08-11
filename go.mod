@@ -5,7 +5,7 @@ go 1.24.3
 require (
 	github.com/JohannesKaufmann/html-to-markdown v1.6.0
 	github.com/MakeNowJust/heredoc v1.0.0
-	github.com/PuerkitoBio/goquery v1.9.2
+	github.com/PuerkitoBio/goquery v1.10.3
 	github.com/alecthomas/chroma/v2 v2.20.0
 	github.com/alibabacloud-go/darabonba-openapi/v2 v2.1.9
 	github.com/alibabacloud-go/dingtalk v1.6.88
@@ -15,15 +15,15 @@ require (
 	github.com/atotto/clipboard v0.1.4
 	github.com/aymanbagabas/go-udiff v0.3.1
 	github.com/bmatcuk/doublestar/v4 v4.9.1
-	github.com/charlievieth/fastwalk v1.0.11
+	github.com/charlievieth/fastwalk v1.0.12
 	github.com/charmbracelet/bubbles/v2 v2.0.0-beta.1.0.20250807144536-86f332629539
-	github.com/charmbracelet/bubbletea/v2 v2.0.0-beta.4.0.20250805190305-70e94a2e0b2d
+	github.com/charmbracelet/bubbletea/v2 v2.0.0-beta.4.0.20250808190645-68df41d24270
 	github.com/charmbracelet/catwalk v0.4.6
 	github.com/charmbracelet/fang v0.3.1-0.20250711140230-d5ebb8c1d674
 	github.com/charmbracelet/glamour/v2 v2.0.0-20250516160903-6f1e2c8f9ebe
 	github.com/charmbracelet/lipgloss/v2 v2.0.0-beta.3.0.20250721205738-ea66aa652ee0
 	github.com/charmbracelet/log/v2 v2.0.0-20250226163916-c379e29ff706
-	github.com/charmbracelet/x/ansi v0.10.0
+	github.com/charmbracelet/x/ansi v0.10.1
 	github.com/charmbracelet/x/exp/charmtone v0.0.0-20250708181618-a60a724ba6c3
 	github.com/charmbracelet/x/exp/golden v0.0.0-20250207160936-21c02780d27a
 	github.com/disintegration/imageorient v0.0.0-20180920195336-8147d86e83ec
@@ -38,7 +38,7 @@ require (
 	github.com/nxadm/tail v1.4.11
 	github.com/open-dingtalk/dingtalk-stream-sdk-go v0.9.1
 	github.com/openai/openai-go v1.11.1
-	github.com/pressly/goose/v3 v3.24.2
+	github.com/pressly/goose/v3 v3.24.3
 	github.com/qjebbs/go-jsons v0.0.0-20221222033332-a534c5fc1c4c
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06
 	github.com/sahilm/fuzzy v0.1.1
@@ -82,7 +82,7 @@ require (
 	cloud.google.com/go/compute/metadata v0.6.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.17.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.10.0 // indirect
-	github.com/andybalholm/cascadia v1.3.2 // indirect
+	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.30.3 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.3 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.27.27 // indirect
@@ -100,7 +100,7 @@ require (
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/charmbracelet/colorprofile v0.3.1 // indirect
-	github.com/charmbracelet/ultraviolet v0.0.0-20250805154935-01be9d7ef65d
+	github.com/charmbracelet/ultraviolet v0.0.0-20250805213125-4167e4d7080b
 	github.com/charmbracelet/x/cellbuf v0.0.14-0.20250516160309-24eee56f89fa // indirect
 	github.com/charmbracelet/x/exp/slice v0.0.0-20250611152503-f53cdd7e01ef
 	github.com/charmbracelet/x/term v0.2.1
