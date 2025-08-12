@@ -463,6 +463,7 @@ func (a *agent) streamAndHandleEvents(ctx context.Context, sessionID string, msg
 	}
 
 	// Now collect tools (which may block on MCP initialization)
+	// 这一段代码，每一个模型都接受了同样的tool配置，需要更改为不同的模型接受不同的tool配置
 	eventChan := a.provider.StreamResponse(ctx, msgHistory, slices.Collect(a.tools.Seq()))
 
 	// Add the session and message ID into the context if needed by tools.
