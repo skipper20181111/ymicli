@@ -189,6 +189,7 @@ func NewAgent(
 			tools.NewViewTool(lspClients, permissions, cwd),
 			tools.NewWriteTool(lspClients, permissions, history, cwd),
 			tools.NewDingTalkTool(permissions, cwd),
+			tools.NewTestNGAgentTool(permissions),
 		}
 
 		mcpToolsOnce.Do(func() {
