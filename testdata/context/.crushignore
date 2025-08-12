@@ -1,0 +1,8 @@
+# Ignore build artifacts and vendor
+**/bin/
+**/dist/
+**/vendor/
+**/.git/
+
+# Ignore large datasets
+**/node_modules/

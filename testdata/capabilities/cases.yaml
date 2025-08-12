@@ -1,0 +1,250 @@
+# Master test cases covering 28 capability areas
+
+version: 1
+
+capabilities:
+  - id: 1
+    name: Agent Tool
+    status: implemented
+    preconditions:
+      - Providers configured; coder/task agents available in config
+    steps:
+      - Open TUI and start a session
+      - Ask: "Use Agent tool to search for where the write tool is implemented"
+      - Expect nested tool calls to appear; final result message in parent session
+    expected:
+      - Tool call chain visible (glob/grep/view)
+      - Cost aggregated back to parent session
+
+  - id: 2
+    name: Architect Tool
+    status: missing
+    steps:
+      - N/A
+    expected:
+      - N/A
+
+  - id: 3
+    name: Think Tool (explicit reasoning)
+    status: partial
+    steps:
+      - Use Anthropic reasoning-capable model; toggle thinking in Commands dialog
+      - Send: "Briefly think then explain one sentence"
+    expected:
+      - Reasoning/thinking stream appears before content; signature recorded
+
+  - id: 4
+    name: Dynamic Reasoning Effort
+    status: partial
+    steps:
+      - Ensure OpenAI model selected; set reasoning_effort in config to high
+      - Send: "Solve a tricky algorithm in O(n log n) with short code"
+    expected:
+      - Request contains reasoning_effort; response completes successfully
+
+  - id: 5
+    name: File Tools (Read/Write/Edit/MultiEdit/Notebook*)
+    status: partial
+    preconditions:
+      - testdata/projects/sample-go checked out
+    steps:
+      - View: open main.go
+      - Edit: replace a constant value
+      - Write: create a new README.md
+      - MultiEdit: apply two small edits in one go
+    expected:
+      - Edits applied; diagnostics show no errors
+      - Note: Notebook* tools are missing
+
+  - id: 6
+    name: Search Tools (Grep/Glob/LS)
+    status: implemented
+    steps:
+      - Glob for "**/*.go" in sample-go
+      - Grep for "main" include "*.go"
+      - LS project root with ignore patterns
+    expected:
+      - Results sorted; respect .crushignore
+
+  - id: 7
+    name: BashTool & Persistent Shell
+    status: implemented
+    steps:
+      - Run: "pwd" then "echo $RANDOM" twice
+      - Run selected safe git commands in sample-go repo
+    expected:
+      - Same shell session; env and cwd persist; git commands allowed
+
+  - id: 8
+    name: Memory Tools
+    status: missing
+    steps: []
+    expected: []
+
+  - id: 9
+    name: MCP Integration
+    status: implemented
+    preconditions:
+      - At least one MCP server configured (stdio/http/sse)
+    steps:
+      - Verify MCP status in UI (connected/starting/error)
+      - Invoke an `mcp_*` tool
+    expected:
+      - Tool runs and returns text content; permission requested on first run
+
+  - id: 10
+    name: Compact Command (conversation compression)
+    status: implemented
+    steps:
+      - Long session to near context window; auto-compact dialog should appear
+      - Manually run Summarize command
+    expected:
+      - Summary message saved; new session created or context reset
+
+  - id: 11
+    name: Conversation Recovery
+    status: partial
+    steps:
+      - Restart app
+      - Reopen existing session
+    expected:
+      - Messages and files history restored; tool outputs remain in timeline
+
+  - id: 12
+    name: Dynamic Context
+    status: partial
+    steps:
+      - Ensure testdata/context/CRUSH.md and .crushignore exist
+      - Start chat; ask about project layout and rules
+    expected:
+      - Prompt contains tree and CRUSH.md content; ignore respected in search
+
+  - id: 13
+    name: Project Onboarding
+    status: implemented
+    steps:
+      - Start app with no data config; complete onboarding
+      - If CRUSH.md missing, project init prompt appears
+    expected:
+      - Model selection + API key flow + project init guidance
+
+  - id: 14
+    name: Ripgrep Integration
+    status: implemented
+    steps:
+      - Ensure rg installed; run Grep/Glob tests
+    expected:
+      - Fast results; fallback path works if rg missing
+
+  - id: 15
+    name: Git Integration
+    status: partial
+    steps:
+      - Run safe git commands via Bash in sample-go repo
+    expected:
+      - Status/diff/log ok; no dedicated git API beyond Bash
+
+  - id: 16
+    name: Terminal UI
+    status: implemented
+    steps:
+      - Validate message stream, tool call visualization, progress spinners
+    expected:
+      - UI responsive; keybindings work
+
+  - id: 17
+    name: Permission System
+    status: implemented
+    steps:
+      - Trigger View outside working dir; trigger Write; trigger Bash exec
+    expected:
+      - Permission dialogs; allow-for-session works
+
+  - id: 18
+    name: Multi-Model Support
+    status: implemented
+    steps:
+      - Switch models/providers; send message
+    expected:
+      - Request uses selected provider/model; tools available
+
+  - id: 19
+    name: Persistent State
+    status: implemented
+    steps:
+      - Verify shell persists between Bash commands
+      - Restart app and verify sessions/messages
+    expected:
+      - Shell, DB-backed sessions persist
+
+  - id: 20
+    name: Cost Tracking
+    status: implemented
+    steps:
+      - Send several messages; check session cost
+    expected:
+      - Cost and token counters increase as expected
+
+  - id: 21
+    name: Error Handling
+    status: implemented
+    steps:
+      - Temporarily use invalid API key; send message
+    expected:
+      - Key refresh/retry/backoff logic observed; user-friendly error if fails
+
+  - id: 22
+    name: Streaming Support
+    status: implemented
+    steps:
+      - Use models supporting streaming; watch incremental updates
+    expected:
+      - Thinking/content/tool_use deltas render in timeline
+
+  - id: 23
+    name: Forking & Sidechains
+    status: partial
+    steps:
+      - Invoke Agent tool; observe nested tool calls as sidechain
+    expected:
+      - Child session tool calls nested under parent tool item
+
+  - id: 24
+    name: Sticker Request Tool
+    status: missing
+    steps: []
+    expected: []
+
+  - id: 25
+    name: API Key Management
+    status: implemented
+    steps:
+      - Use onboarding/model dialog to enter API key; test connection
+    expected:
+      - Key saved to data config with 0600 perms; verified message
+
+  - id: 26
+    name: Content Filtering / Malicious Code Detection
+    status: missing
+    steps:
+      - Try a banned Bash command
+    expected:
+      - Command is blocked (baseline safety); no advanced code-content filter
+
+  - id: 27
+    name: Caching System
+    status: partial
+    steps:
+      - Observe providers cache file creation
+    expected:
+      - Provider cache present; no response/context cache layer
+
+  - id: 28
+    name: Concurrent Processing
+    status: partial
+    steps:
+      - Trigger multiple MCP initializations; observe parallel setup
+      - Issue multiple tool calls from model (serialized in agent); verify cancellation works
+    expected:
+      - Parallel MCP init; tool calls cancellable
+
