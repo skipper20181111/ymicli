@@ -203,6 +203,11 @@ func NewProvider(cfg config.ProviderConfig, opts ...ProviderClientOption) (Provi
 			options: clientOptions,
 			client:  newVertexAIClient(clientOptions),
 		}, nil
+	case "myhttp":
+		return &baseProvider[MyHTTPClient]{
+			options: clientOptions,
+			client:  newMyHTTPClient(clientOptions),
+		}, nil
 	}
 	return nil, fmt.Errorf("provider not supported: %s", cfg.Type)
 }
