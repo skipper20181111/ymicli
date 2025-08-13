@@ -34,22 +34,6 @@
         }
       ]
     },
-    "xinfei-gpt5": {
-      "type": "openai",
-      "base_url": "https://api.bltcy.cn/v1",
-      "api_key": "sk-6PLYLNgR4ilVmVmmi7INO8zeQhBqIOKMzAynCjCz5m7PxbCF",
-      "models": [
-        {
-          "id": "gpt-5",
-          "name": "gpt-5",
-          "cost_per_1m_in": 1.5,
-          "cost_per_1m_out": 7.5,
-          "cost_per_1m_in_cached": 0,
-          "cost_per_1m_out_cached": 0,
-          "context_window": 500000
-        }
-      ]
-    },
     "testng": {
       "base_url": "http://localhost:38888",
       "type": "myhttp",
