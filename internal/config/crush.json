@@ -74,6 +74,22 @@
           "context_window": 500000
         }
       ]
+    },
+    "testng": {
+      "base_url": "http://localhost:38888",
+      "type": "myhttp",
+      "api_key": "sk-6PLYLNgR4ilVmVmmi7INO8zeQhBqIOKMzAynCjCz5m7PxbCF",
+      "models": [
+        {
+          "id": "testng",
+          "name": "testng",
+          "cost_per_1m_in": 1.5,
+          "cost_per_1m_out": 7.5,
+          "cost_per_1m_in_cached": 0,
+          "cost_per_1m_out_cached": 0,
+          "context_window": 500000
+        }
+      ]
     }
   }
 }
