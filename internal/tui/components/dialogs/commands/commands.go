@@ -365,7 +365,7 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 	return append(commands, []Command{
 		{
 			ID:          "toggle_yolo",
-			Title:       "Toggle Yolo Mode",
+			Title:       "切换「Yolo 模式」",
 			Description: "Toggle yolo mode",
 			Handler: func(cmd Command) tea.Cmd {
 				return util.CmdHandler(ToggleYoloModeMsg{})
@@ -373,7 +373,7 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 		},
 		{
 			ID:          "toggle_help",
-			Title:       "Toggle Help",
+			Title:       "更多快捷键",
 			Shortcut:    "ctrl+g",
 			Description: "Toggle help",
 			Handler: func(cmd Command) tea.Cmd {
