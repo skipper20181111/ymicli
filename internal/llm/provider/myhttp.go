@@ -68,7 +68,7 @@ func (m *myHTTPClient) buildRequestPayload(ctx context.Context, messages []messa
 
 	// absolutePath: 使用配置工作目录
 	absolutePath := config.Get().WorkingDir()
-	absolutePath = "/Users/g01d-01-1136/javaProjects/cashiercore"
+	//absolutePath = "/Users/g01d-01-1136/javaProjects/cashiercore"
 
 	// sessionId: 从上下文读取
 	sessionID, _ := tools.GetContextValues(ctx)
