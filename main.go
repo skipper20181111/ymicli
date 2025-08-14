@@ -2,6 +2,8 @@ package main
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net"
@@ -44,13 +46,18 @@ func Ping() {
 	// 立即发送第一个ping
 	err := sendPing(serverAddr)
 	if err != nil {
+		fmt.Println(err.Error())
 		time.Sleep(time.Second * 2)
 		err = sendPing(serverAddr)
 		if err != nil {
+			fmt.Println(err.Error())
 			StartCodeCliServer()
 		}
 	}
-
+	err = initRefresh()
+	if err != nil {
+		StartCodeCliServer()
+	}
 	// 创建定时器，定期发送ping
 	ticker := time.NewTicker(pingInterval)
 	defer ticker.Stop()
@@ -68,10 +75,15 @@ func Ping() {
 }
 func StartCodeCliServer() {
 	// 构建完整的 shell 命令
-	cmd := exec.Command("bash", "-c", "nohup ./CodeCliServer > /dev/null 2>&1 &")
+	cmd := exec.Command("bash", "-c", "nohup CodeCliServer > /dev/null 2>&1 &")
 	// 使用 cmd.Start() 启动 shell 命令
 	// shell 会立即返回，而子进程 CodeCliServer 在后台运行
-	cmd.Start()
+	err := cmd.Start()
+	if err != nil {
+		fmt.Println("Failed to start CodeCliServer", err.Error())
+	}
+	time.Sleep(2 * time.Second)
+	initRefresh()
 }
 
 // sendPing 客户端函数，用于发送ping请求
@@ -104,4 +116,49 @@ func sendPing(serverAddr string) error {
 	} else {
 		return fmt.Errorf("收到意外响应: %s", response)
 	}
+}
+
+type RequestBody struct {
+	AbsolutePath string `json:"absolutePath"`
+}
+
+// initRefresh sends an HTTP POST request to the specified endpoint with a JSON body.
+func initRefresh() error {
+	// Define the URL for the HTTP request.
+	url := "http://localhost:38888/refresh/initRefresh"
+	absolutePath, _ := os.Getwd()
+	// Create an instance of the RequestBody struct.
+	data := RequestBody{
+		AbsolutePath: absolutePath,
+	}
+
+	// Marshal the struct into a JSON byte slice.
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Errorf("failed to marshal JSON: %w", err)
+	}
+
+	// Create a new HTTP request.
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Set the Content-Type header to application/json.
+	req.Header.Set("Content-Type", "application/json")
+
+	// Create an HTTP client and send the request.
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Check the response status code.
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("received non-OK status code: %d", resp.StatusCode)
+	}
+
+	return nil
 }
