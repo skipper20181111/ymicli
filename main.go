@@ -46,11 +46,9 @@ func Ping() {
 	// 立即发送第一个ping
 	err := sendPing(serverAddr)
 	if err != nil {
-		fmt.Println(err.Error())
 		time.Sleep(time.Second * 2)
 		err = sendPing(serverAddr)
 		if err != nil {
-			fmt.Println(err.Error())
 			StartCodeCliServer()
 		}
 	}
@@ -78,10 +76,8 @@ func StartCodeCliServer() {
 	cmd := exec.Command("bash", "-c", "nohup CodeCliServer > /dev/null 2>&1 &")
 	// 使用 cmd.Start() 启动 shell 命令
 	// shell 会立即返回，而子进程 CodeCliServer 在后台运行
-	err := cmd.Start()
-	if err != nil {
-		fmt.Println("Failed to start CodeCliServer", err.Error())
-	}
+	cmd.Start()
+
 	time.Sleep(2 * time.Second)
 	initRefresh()
 }
