@@ -69,7 +69,7 @@ require (
 	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.54.0 // indirect
-	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
+	golang.org/x/exp v0.0.0-20250506013437-ce4c2cf36ca6 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
 	golang.org/x/time v0.8.0 // indirect
 	google.golang.org/api v0.211.0 // indirect
@@ -165,8 +165,6 @@ require (
 	golang.org/x/sys v0.34.0
 	golang.org/x/term v0.32.0 // indirect
 	golang.org/x/text v0.28.0
-	golang.org/x/time v0.8.0 // indirect
-	google.golang.org/api v0.211.0 // indirect
 	google.golang.org/genai v1.19.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250324211829-b45e905df463 // indirect
 	google.golang.org/grpc v1.71.0 // indirect
