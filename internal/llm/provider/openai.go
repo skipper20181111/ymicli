@@ -1,12 +1,14 @@
 package provider
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
+	"net/http"
 	"slices"
 	"strings"
 	"time"
@@ -22,6 +24,54 @@ import (
 	"github.com/openai/openai-go/packages/param"
 	"github.com/openai/openai-go/shared"
 )
+
+// loggingRoundTripper is a custom http.RoundTripper that logs the raw response body of streaming requests.
+type loggingRoundTripper struct {
+	proxied http.RoundTripper
+}
+
+func (lrt *loggingRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	resp, err := lrt.proxied.RoundTrip(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// For streaming responses, we replace the body with a reader that logs as it's read.
+	if resp.Header.Get("Content-Type") == "text/event-stream" {
+		resp.Body = &filteringReader{reader: resp.Body}
+	}
+
+	return resp, nil
+}
+
+// filteringReader wraps an io.ReadCloser to log the raw bytes and filter out SSE PING messages.
+type filteringReader struct {
+	reader io.ReadCloser
+}
+
+func (fr *filteringReader) Read(p []byte) (n int, err error) {
+	n, err = fr.reader.Read(p)
+	if n > 0 {
+		// Log the original data before filtering for debugging purposes
+		//slog.Info("Raw third-party stream data", "data", string(p[:n]))
+
+		// Filter out keep-alive messages from the stream. Some proxies like OpenRouter
+		// send ": PING\n\n" to keep the connection alive, which can break JSON decoders.
+		filteredData := bytes.ReplaceAll(p[:n], []byte(": PING\n\n"), []byte{})
+		n = copy(p, filteredData)
+
+		// After filtering, if the buffer is empty, we need to read again to avoid
+		// returning (0, nil) which signals EOF to some clients.
+		if n == 0 && err == nil {
+			return fr.Read(p)
+		}
+	}
+	return n, err
+}
+
+func (fr *filteringReader) Close() error {
+	return fr.reader.Close()
+}
 
 type openaiClient struct {
 	providerOptions providerClientOptions
@@ -49,9 +99,33 @@ func createOpenAIClient(opts providerClientOptions) openai.Client {
 		}
 	}
 
+	// Create a base transport with keep-alives disabled
+	baseTransport := &http.Transport{
+		DisableKeepAlives: true,
+	}
+	// Wrap the transport for real-time logging of the raw stream
+	loggingTransport := &loggingRoundTripper{proxied: baseTransport}
+
 	if config.Get().Options.Debug {
-		httpClient := log.NewHTTPClient()
+		httpClient := log.NewHTTPClient() // This client has its own transport for logging requests
+		// We replace it to add our raw response logging as well.
+		httpClient.Transport = loggingTransport
+		httpClient.Timeout = 300 * time.Second
 		openaiClientOptions = append(openaiClientOptions, option.WithHTTPClient(httpClient))
+	} else {
+		// For non-debug, create a standard client with our logging transport
+		httpClient := &http.Client{
+			Transport: loggingTransport,
+			Timeout:   300 * time.Second,
+		}
+		openaiClientOptions = append(openaiClientOptions, option.WithHTTPClient(httpClient))
+	}
+
+	// Add Anthropic version header for third-party providers that may be wrapping Claude
+	isThirdParty := opts.baseURL != "" && !strings.Contains(opts.baseURL, "api.openai.com") && !strings.Contains(opts.baseURL, "openai.com")
+	if isThirdParty {
+		// This is a common requirement for OpenAI-compatible endpoints that wrap Anthropic models
+		openaiClientOptions = append(openaiClientOptions, option.WithHeader("anthropic-version", "2023-06-01"))
 	}
 
 	for key, value := range opts.extraHeaders {
@@ -173,6 +247,17 @@ func (o *openaiClient) convertMessages(messages []message.Message) (openaiMessag
 			}
 
 			if len(msg.ToolCalls()) > 0 {
+				if !hasContent {
+					// Anthropic models require a content block (even if empty) when tool_calls are present.
+					textBlock := openai.ChatCompletionContentPartTextParam{Text: ""}
+					assistantMsg.Content = openai.ChatCompletionAssistantMessageParamContentUnion{
+						OfArrayOfContentParts: []openai.ChatCompletionAssistantMessageParamContentArrayOfContentPartUnion{
+							{
+								OfText: &textBlock,
+							},
+						},
+					}
+				}
 				hasContent = true
 				assistantMsg.ToolCalls = make([]openai.ChatCompletionMessageToolCallParam, len(msg.ToolCalls()))
 				for i, call := range msg.ToolCalls() {
@@ -196,6 +281,8 @@ func (o *openaiClient) convertMessages(messages []message.Message) (openaiMessag
 			})
 
 		case message.Tool:
+			// Third-party providers wrapping Anthropic models often expect tool results
+			// to be in a user message, not a tool message.
 			for _, result := range msg.ToolResults() {
 				openaiMessages = append(openaiMessages,
 					openai.ToolMessage(result.Content, result.ToolCallID),
@@ -368,6 +455,7 @@ func (o *openaiClient) stream(ctx context.Context, messages []message.Message, t
 
 	// Debug: Log streaming request parameters and body
 	//isThirdParty := o.isThirdPartyAPI()
+	//slog.Info("Sending streaming API request", "request_body", params)
 	//paramsJSON, _ := json.Marshal(params)
 	//slog.Info("Sending streaming API request",
 	//	"provider", o.providerOptions.config.ID,
@@ -383,12 +471,14 @@ func (o *openaiClient) stream(ctx context.Context, messages []message.Message, t
 	eventChan := make(chan ProviderEvent)
 
 	go func() {
+		var chunkCount int
 		for {
 			attempts++
 			// Kujtim: fixes an issue with anthropig models on openrouter
 			if len(params.Tools) == 0 {
 				params.Tools = nil
 			}
+			//slog.Info("Starting streaming request", "model", params.Model, "base_url", o.providerOptions.baseURL, "message_count", len(params.Messages), "tool_count", len(params.Tools))
 			openaiStream := o.client.Chat.Completions.NewStreaming(
 				ctx,
 				params,
@@ -398,8 +488,19 @@ func (o *openaiClient) stream(ctx context.Context, messages []message.Message, t
 			currentContent := ""
 			toolCalls := make([]message.ToolCall, 0)
 			var msgToolCalls []openai.ChatCompletionMessageToolCall
+			chunkCount = 0
 			for openaiStream.Next() {
+				chunkCount++
 				chunk := openaiStream.Current()
+				//chunkJSON, _ := json.Marshal(chunk)
+				//slog.Info("Received stream chunk", "chunk_number", chunkCount, "raw_chunk", string(chunkJSON))
+				//slog.Debug("Received chunk", "chunk_number", chunkCount, "choices_count", len(chunk.Choices))
+
+				// 检查chunk是否有效
+				if len(chunk.Choices) == 0 {
+					slog.Warn("Received empty chunk", "chunk_number", chunkCount)
+					continue
+				}
 				// Kujtim: this is an issue with openrouter qwen, its sending -1 for the tool index
 				if len(chunk.Choices) > 0 && len(chunk.Choices[0].Delta.ToolCalls) > 0 && chunk.Choices[0].Delta.ToolCalls[0].Index == -1 {
 					chunk.Choices[0].Delta.ToolCalls[0].Index = 0
@@ -561,20 +662,48 @@ func (o *openaiClient) shouldRetry(attempts int, err error) (bool, int64, error)
 			return true, 0, nil
 		}
 
-		if apiErr.StatusCode != 429 && apiErr.StatusCode != 500 {
+		if apiErr.StatusCode != 408 && apiErr.StatusCode != 429 && apiErr.StatusCode != 500 {
 			return false, 0, err
 		}
 
 		retryAfterValues = apiErr.Response.Header.Values("Retry-After")
 	}
 
+	//slog.Info("OpenAI API errormsg", "response", fmt.Sprintf("%+v", apiErr))
 	if apiErr != nil {
 		slog.Warn("OpenAI API error", "status_code", apiErr.StatusCode, "message", apiErr.Message, "type", apiErr.Type)
 		if len(retryAfterValues) > 0 {
 			slog.Warn("Retry-After header", "values", retryAfterValues)
 		}
 	} else {
-		slog.Error("OpenAI API error", "error", err.Error(), "attempt", attempts, "max_retries", maxRetries)
+		slog.Error("OpenAI API error", "error", err.Error(), "attempt", attempts, "max_retries", maxRetries, "error_type", fmt.Sprintf("%T", err))
+		// 特别检查JSON解析错误
+		if strings.Contains(err.Error(), "unexpected end of JSON input") {
+			slog.Error("JSON parsing error detected - this usually means incomplete response from API",
+				"error_type", "json_parse_error",
+				"base_url", o.providerOptions.baseURL,
+				"model", o.providerOptions.modelType,
+				"full_error", err.Error(),
+				"error_details", fmt.Sprintf("%+v", err))
+
+			// 检查是否是json.SyntaxError
+			var jsonErr *json.SyntaxError
+			if errors.As(err, &jsonErr) {
+				slog.Error("JSON Syntax Error details",
+					"offset", jsonErr.Offset,
+					"error_type", "json_syntax_error",
+					"base_url", o.providerOptions.baseURL)
+			}
+
+			// 尝试获取更多错误信息
+			if apiErr != nil {
+				slog.Error("API Error details",
+					"status_code", apiErr.StatusCode,
+					"message", apiErr.Message,
+					"type", apiErr.Type,
+					"response_body", fmt.Sprintf("%+v", apiErr))
+			}
+		}
 	}
 
 	backoffMs := 2000 * (1 << (attempts - 1))
