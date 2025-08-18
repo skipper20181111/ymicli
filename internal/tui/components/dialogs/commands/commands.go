@@ -382,8 +382,8 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 		},
 		{
 			ID:          "init",
-			Title:       "生成XFTech.md",
-			Description: "Create/Update the XFTech.md memory file",
+			Title:       "Initialize Project",
+			Description: "Create/Update the CRUSH.md memory file",
 			Handler: func(cmd Command) tea.Cmd {
 				return util.CmdHandler(chat.SendMsg{
 					Text: prompt.Initialize(),
