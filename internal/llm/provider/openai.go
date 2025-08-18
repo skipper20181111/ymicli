@@ -272,8 +272,11 @@ func (o *openaiClient) convertMessages(messages []message.Message) (openaiMessag
 				}
 			}
 			if !hasContent {
-				slog.Warn("There is a message without content, investigate, this should not happen")
-				continue
+				// An assistant message must have content, even if it's an empty string.
+				// This is especially important for Anthropic models when tool calls are used,
+				// as an empty assistant message might precede the tool_result user message.
+				// Dropping it would break the message sequence.
+				assistantMsg.Content = openai.ChatCompletionAssistantMessageParamContentUnion{OfString: param.NewOpt(" ")}
 			}
 
 			openaiMessages = append(openaiMessages, openai.ChatCompletionMessageParamUnion{
