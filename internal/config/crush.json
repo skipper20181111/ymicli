@@ -57,7 +57,7 @@
       "models": [
         {
           "id": "claude-sonnet-4-20250514",
-          "name": "Claude 4 Sonnet",
+          "name": "CodeReview-Claude",
           "cost_per_1m_in": 0.75,
           "cost_per_1m_out": 3.75,
           "cost_per_1m_in_cached": 0,
@@ -67,7 +67,7 @@
         },
         {
           "id": "gemini-2.5-pro-nothinking",
-          "name": "Gemini 2.5 Pro",
+          "name": "CodeReview-Gemini",
           "supports_attachments": true,
           "cost_per_1m_in": 0.50,
           "cost_per_1m_out": 1.50,
