@@ -208,6 +208,11 @@ func NewProvider(cfg config.ProviderConfig, opts ...ProviderClientOption) (Provi
 			options: clientOptions,
 			client:  newMyHTTPClient(clientOptions),
 		}, nil
+	case "codecr":
+		return &baseProvider[CodecrClient]{
+			options: clientOptions,
+			client:  newCodecrClient(clientOptions),
+		}, nil
 	}
 	return nil, fmt.Errorf("provider not supported: %s", cfg.Type)
 }

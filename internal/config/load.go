@@ -294,6 +294,7 @@ func (c *Config) configureProviders(env env.Env, resolver VariableResolver, know
 			catwalk.TypeAzure:      true,
 			catwalk.TypeVertexAI:   true,
 			catwalk.Type("myhttp"): true,
+			catwalk.Type("codecr"): true,
 		}
 		if !supportedTypes[providerConfig.Type] {
 			slog.Warn("Skipping custom provider because the provider type is not supported", "provider", id, "type", providerConfig.Type)

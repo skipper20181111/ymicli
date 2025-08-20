@@ -7,6 +7,10 @@ require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/PuerkitoBio/goquery v1.10.3
 	github.com/alecthomas/chroma/v2 v2.20.0
+	github.com/alibabacloud-go/darabonba-openapi/v2 v2.1.10
+	github.com/alibabacloud-go/dingtalk v1.6.88
+	github.com/alibabacloud-go/tea v1.3.10
+	github.com/alibabacloud-go/tea-utils/v2 v2.0.7
 	github.com/anthropics/anthropic-sdk-go v1.6.2
 	github.com/atotto/clipboard v0.1.4
 	github.com/aymanbagabas/go-udiff v0.3.1
@@ -32,6 +36,7 @@ require (
 	github.com/ncruces/go-sqlite3 v0.25.0
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/nxadm/tail v1.4.11
+	github.com/open-dingtalk/dingtalk-stream-sdk-go v0.9.1
 	github.com/openai/openai-go v1.11.1
 	github.com/pressly/goose/v3 v3.24.3
 	github.com/qjebbs/go-jsons v0.0.0-20221222033332-a534c5fc1c4c
@@ -45,6 +50,20 @@ require (
 	github.com/zeebo/xxh3 v1.0.2
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	mvdan.cc/sh/v3 v3.12.1-0.20250726150758-e256f53bade8
+)
+
+require (
+	github.com/alibabacloud-go/alibabacloud-gateway-spi v0.0.5 // indirect
+	github.com/alibabacloud-go/debug v1.0.1 // indirect
+	github.com/alibabacloud-go/gateway-dingtalk v1.0.2 // indirect
+	github.com/alibabacloud-go/openapi-util v0.1.1 // indirect
+	github.com/aliyun/credentials-go v1.4.5 // indirect
+	github.com/clbanning/mxj/v2 v2.7.0 // indirect
+	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+	github.com/modern-go/reflect2 v1.0.2 // indirect
+	github.com/tjfoc/gmsm v1.4.1 // indirect
+	gopkg.in/ini.v1 v1.67.0 // indirect
 )
 
 require (
@@ -93,7 +112,7 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.3.4 // indirect
 	github.com/googleapis/gax-go/v2 v2.14.1 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
-	github.com/gorilla/websocket v1.5.3 // indirect
+	github.com/gorilla/websocket v1.5.3
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect

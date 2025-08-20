@@ -24,6 +24,9 @@ func CoderPrompt(p string, contextFiles ...string) string {
 		basePrompt = string(coderV2Prompt)
 	case string(catwalk.InferenceProviderGemini):
 		basePrompt = string(geminiCoderPrompt)
+	case "codecr":
+		basePrompt = string(codecr)
+
 	}
 	if ok, _ := strconv.ParseBool(os.Getenv("CRUSH_CODER_V2")); ok {
 		basePrompt = string(coderV2Prompt)
@@ -50,6 +53,9 @@ var openaiCoderPrompt []byte
 
 //go:embed v2.md
 var coderV2Prompt []byte
+
+//go:embed codecr.md
+var codecr []byte
 
 func getEnvironmentInfo() string {
 	cwd := config.Get().WorkingDir()
