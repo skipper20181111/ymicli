@@ -411,7 +411,6 @@ func (c *codecrClient) stream(ctx context.Context, messages []message.Message, t
 	eventChan := make(chan ProviderEvent)
 
 	go func() {
-		var chunkCount int
 		for {
 			attempts++
 			// Kujtim: fixes an issue with anthropig models on openrouter
@@ -427,16 +426,9 @@ func (c *codecrClient) stream(ctx context.Context, messages []message.Message, t
 			currentContent := ""
 			toolCalls := make([]message.ToolCall, 0)
 			var msgToolCalls []openai.ChatCompletionMessageToolCall
-			chunkCount = 0
 			for openaiStream.Next() {
-				chunkCount++
 				chunk := openaiStream.Current()
 
-				// 检查chunk是否有效
-				if len(chunk.Choices) == 0 {
-					slog.Warn("Received empty chunk", "chunk_number", chunkCount)
-					continue
-				}
 				// Kujtim: this is an issue with openrouter qwen, its sending -1 for the tool index
 				if len(chunk.Choices) > 0 && len(chunk.Choices[0].Delta.ToolCalls) > 0 && chunk.Choices[0].Delta.ToolCalls[0].Index == -1 {
 					chunk.Choices[0].Delta.ToolCalls[0].Index = 0
