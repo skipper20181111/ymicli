@@ -24,3 +24,43 @@ type DocExportEvent struct {
 	URL        string `json:"url"`        // 导出文件可访问的URL
 	TaskID     string `json:"taskId"`     // 任务的唯一标识符
 }
+
+type (
+	// UserData 结构体用于解析并返回最终的用户信息
+	UserData struct {
+		Suc            bool        `json:"suc"`
+		ErrorContext   interface{} `json:"errorContext"`
+		UserID         string      `json:"userId"`
+		UserName       string      `json:"userName"`
+		FullName       string      `json:"fullName"`
+		Mobile         string      `json:"mobile"`
+		Email          string      `json:"email"`
+		JobNumber      interface{} `json:"jobNumber"`
+		SourceType     string      `json:"sourceType"`
+		UserStatus     string      `json:"userStatus"`
+		Gender         interface{} `json:"gender"`
+		DeptName       interface{} `json:"deptName"`
+		DeptID         interface{} `json:"deptId"`
+		OldUserIDDTO   interface{} `json:"oldUserIdDTO"`
+		DingUserID     interface{} `json:"dingUserId"`
+		DingDeptID     interface{} `json:"dingDeptId"`
+		DingUnionID    interface{} `json:"dingUnionId"`
+		SsoOrgDeptList interface{} `json:"ssoOrgDeptList"`
+	}
+
+	// CheckTicketResponse 结构体用于解析 checkTicket 接口的响应
+	CheckTicketResponse struct {
+		Suc  bool `json:"suc"`
+		Data struct {
+			UserAuthDTO struct {
+				AccessToken string `json:"accessToken"`
+			} `json:"userAuthDTO"`
+		} `json:"data"`
+	}
+
+	// CheckTokenResponse 结构体用于解析 checkToken 接口的响应
+	CheckTokenResponse struct {
+		Suc  bool     `json:"suc"`
+		Data UserData `json:"data"`
+	}
+)

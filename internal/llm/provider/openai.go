@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/charmbracelet/crush/internal/login"
 	"io"
 	"log/slog"
 	"net/http"
@@ -76,6 +77,7 @@ func (fr *filteringReader) Close() error {
 type openaiClient struct {
 	providerOptions providerClientOptions
 	client          openai.Client
+	HardHash        string
 }
 
 type OpenAIClient ProviderClient
@@ -84,6 +86,7 @@ func newOpenAIClient(opts providerClientOptions) OpenAIClient {
 	return &openaiClient{
 		providerOptions: opts,
 		client:          createOpenAIClient(opts),
+		HardHash:        login.GetHardwareHash(),
 	}
 }
 
@@ -450,26 +453,10 @@ func (o *openaiClient) stream(ctx context.Context, messages []message.Message, t
 	params := o.preparedParams(o.convertMessages(messages), o.convertTools(tools))
 
 	// Only set StreamOptions for official OpenAI API
-	if !o.isThirdPartyAPI() {
-		params.StreamOptions = openai.ChatCompletionStreamOptionsParam{
-			IncludeUsage: openai.Bool(true),
-		}
+
+	params.StreamOptions = openai.ChatCompletionStreamOptionsParam{
+		IncludeUsage: openai.Bool(true),
 	}
-
-	// Debug: Log streaming request parameters and body
-	//isThirdParty := o.isThirdPartyAPI()
-	//slog.Info("Sending streaming API request", "request_body", params)
-	//paramsJSON, _ := json.Marshal(params)
-	//slog.Info("Sending streaming API request",
-	//	"provider", o.providerOptions.config.ID,
-	//	"model", params.Model,
-	//	"message_count", len(params.Messages),
-	//	"tool_count", len(params.Tools),
-	//	"base_url", o.providerOptions.baseURL,
-	//	"is_third_party", isThirdParty,
-	//	"request_body", string(paramsJSON),
-	//)
-
 	attempts := 0
 	eventChan := make(chan ProviderEvent)
 
@@ -730,15 +717,48 @@ func (o *openaiClient) toolCalls(completion openai.ChatCompletion) []message.Too
 func (o *openaiClient) usage(completion openai.ChatCompletion) TokenUsage {
 	cachedTokens := completion.Usage.PromptTokensDetails.CachedTokens
 	inputTokens := completion.Usage.PromptTokens - cachedTokens
-
-	return TokenUsage{
+	usageresp := TokenUsage{
 		InputTokens:         inputTokens,
 		OutputTokens:        completion.Usage.CompletionTokens,
 		CacheCreationTokens: 0, // OpenAI doesn't provide this directly
 		CacheReadTokens:     cachedTokens,
 	}
+	o.saveUsage(usageresp.InputTokens + usageresp.OutputTokens)
+	return usageresp
 }
 
 func (o *openaiClient) Model() catwalk.Model {
 	return o.providerOptions.model(o.providerOptions.modelType)
+}
+
+// saveUsage sends token usage data to the local server
+func (o *openaiClient) saveUsage(token int64) error {
+	requestBody := map[string]interface{}{
+		"token":      token,
+		"computerId": o.HardHash,
+	}
+
+	jsonData, err := json.Marshal(requestBody)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", "http://localhost:38888/code/saveusage", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return nil
 }

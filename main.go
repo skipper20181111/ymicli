@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/charmbracelet/crush/internal/login"
 	"log/slog"
 	"net"
 	"net/http"
@@ -22,6 +23,7 @@ import (
 )
 
 func main() {
+	login.Login()
 	go Ping()
 	defer log.RecoverPanic("main", func() {
 		slog.Error("Application terminated due to unhandled panic")
@@ -40,6 +42,7 @@ func main() {
 }
 
 func Ping() {
+
 	serverAddr := "localhost:39999"
 	// 心跳间隔
 	pingInterval := 20 * time.Second
