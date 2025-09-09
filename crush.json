@@ -4,5 +4,61 @@
     "Go": {
       "command": "gopls"
     }
+  },
+  "providers": {
+    "xinfei-common": {
+      "type": "httpstream",
+      "base_url": "https://api.bltcy.cn/v1",
+      "api_key": "sk-rC56K5uGT2WN6WfMoaHNFL7T0PanYVWdwNV5LuH8sfblk5MY",
+      "models": [
+        {
+          "id": "claude-sonnet-4-20250514",
+          "name": "Claude 4 Sonnet",
+          "supports_attachments": true,
+          "cost_per_1m_in": 3,
+          "cost_per_1m_out": 15,
+          "cost_per_1m_in_cached": 3,
+          "cost_per_1m_out_cached": 15,
+          "context_window": 1000000,
+          "default_max_tokens": 64000
+        }
+      ]
+    },
+    "xinfei-common-no-stream": {
+      "type": "openai",
+      "base_url": "https://api.bltcy.cn/v1",
+      "api_key": "sk-rC56K5uGT2WN6WfMoaHNFL7T0PanYVWdwNV5LuH8sfblk5MY",
+      "models": [
+        {
+          "id": "claude-sonnet-4-20250514",
+          "name": "Claude 4 Sonnet",
+          "supports_attachments": true,
+          "cost_per_1m_in": 3,
+          "cost_per_1m_out": 15,
+          "cost_per_1m_in_cached": 3,
+          "cost_per_1m_out_cached": 15,
+          "context_window": 200000,
+          "default_max_tokens": 64000
+        }
+      ]
+    },
+    "xinfei-GPT5": {
+      "type": "httpnostream",
+      "base_url": "https://api.bltcy.cn/v1",
+      "api_key": "sk-4g353GFwqUZI7EoGLpfszJtqlJMfyh5jHKVOTFXFFjZd7gPX",
+      "models": [
+        {
+          "id": "gpt-5",
+          "name": "gpt-5",
+          "cost_per_1m_in": 3.75,
+          "cost_per_1m_out": 30,
+          "cost_per_1m_in_cached": 3.75,
+          "cost_per_1m_out_cached": 30,
+          "context_window": 256000,
+          "default_max_tokens": 64000,
+          "supports_attachments": true
+        }
+      ]
+    }
   }
 }

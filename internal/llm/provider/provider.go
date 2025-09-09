@@ -2,7 +2,11 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/charmbracelet/catwalk/pkg/catwalk"
 
@@ -53,6 +57,37 @@ type ProviderEvent struct {
 	ToolCall  *message.ToolCall
 	Error     error
 }
+
+// logEvent logs various events to httplog.log
+func logEvent(event ProviderEvent) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return
+	}
+	logFile := filepath.Join(wd, "httplog.log")
+	file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	if err != nil {
+		return
+	}
+	defer file.Close()
+
+	timestamp := time.Now().Format("2006-01-02 15:04:05")
+
+	eventJSON, err := json.MarshalIndent(event, "", "  ")
+	if err != nil {
+		return
+	}
+
+	logEntry := fmt.Sprintf("\n=== Event - %s ===\n%s\n=== End Event ===\n\n", timestamp, string(eventJSON))
+	file.WriteString(logEntry)
+}
+
+// sendEvent logs the event and then sends it to the channel
+func sendEvent(eventChan chan<- ProviderEvent, event ProviderEvent) {
+	logEvent(event)
+	eventChan <- event
+}
+
 type Provider interface {
 	SendMessages(ctx context.Context, messages []message.Message, tools []tools.BaseTool) (*ProviderResponse, error)
 
@@ -202,6 +237,11 @@ func NewProvider(cfg config.ProviderConfig, opts ...ProviderClientOption) (Provi
 		return &baseProvider[VertexAIClient]{
 			options: clientOptions,
 			client:  newVertexAIClient(clientOptions),
+		}, nil
+	case "httpstream":
+		return &baseProvider[HTTPStreamClient]{
+			options: clientOptions,
+			client:  newHTTPStreamClient(clientOptions),
 		}, nil
 	}
 	return nil, fmt.Errorf("provider not supported: %s", cfg.Type)

@@ -353,17 +353,17 @@ func (o *openaiClient) stream(ctx context.Context, messages []message.Message, t
 						reasoningStr := ""
 						json.Unmarshal([]byte(reasoning.Raw()), &reasoningStr)
 						if reasoningStr != "" {
-							eventChan <- ProviderEvent{
+							sendEvent(eventChan, ProviderEvent{
 								Type:     EventThinkingDelta,
 								Thinking: reasoningStr,
-							}
+							})
 						}
 					}
 					if choice.Delta.Content != "" {
-						eventChan <- ProviderEvent{
+						sendEvent(eventChan, ProviderEvent{
 							Type:    EventContentDelta,
 							Content: choice.Delta.Content,
-						}
+						})
 						currentContent += choice.Delta.Content
 					} else if len(choice.Delta.ToolCalls) > 0 {
 						toolCall := choice.Delta.ToolCalls[0]
@@ -395,14 +395,14 @@ func (o *openaiClient) stream(ctx context.Context, messages []message.Message, t
 							if toolCall.ID == "" {
 								toolCall.ID = uuid.NewString()
 							}
-							eventChan <- ProviderEvent{
+							sendEvent(eventChan, ProviderEvent{
 								Type: EventToolUseStart,
 								ToolCall: &message.ToolCall{
 									ID:       toolCall.ID,
 									Name:     toolCall.Function.Name,
 									Finished: false,
 								},
-							}
+							})
 							msgToolCalls[toolCall.Index] = openai.ChatCompletionMessageToolCall{
 								ID:   toolCall.ID,
 								Type: "function",
@@ -425,10 +425,10 @@ func (o *openaiClient) stream(ctx context.Context, messages []message.Message, t
 			err := openaiStream.Err()
 			if err == nil || errors.Is(err, io.EOF) {
 				if len(acc.Choices) == 0 {
-					eventChan <- ProviderEvent{
+					sendEvent(eventChan, ProviderEvent{
 						Type:  EventError,
 						Error: fmt.Errorf("received empty streaming response from OpenAI API - check endpoint configuration"),
-					}
+					})
 					return
 				}
 
@@ -447,7 +447,7 @@ func (o *openaiClient) stream(ctx context.Context, messages []message.Message, t
 					finishReason = message.FinishReasonToolUse
 				}
 
-				eventChan <- ProviderEvent{
+				sendEvent(eventChan, ProviderEvent{
 					Type: EventComplete,
 					Response: &ProviderResponse{
 						Content:      currentContent,
@@ -455,7 +455,7 @@ func (o *openaiClient) stream(ctx context.Context, messages []message.Message, t
 						Usage:        o.usage(acc.ChatCompletion),
 						FinishReason: finishReason,
 					},
-				}
+				})
 				close(eventChan)
 				return
 			}
@@ -463,7 +463,7 @@ func (o *openaiClient) stream(ctx context.Context, messages []message.Message, t
 			// If there is an error we are going to see if we can retry the call
 			retry, after, retryErr := o.shouldRetry(attempts, err)
 			if retryErr != nil {
-				eventChan <- ProviderEvent{Type: EventError, Error: retryErr}
+				sendEvent(eventChan, ProviderEvent{Type: EventError, Error: retryErr})
 				close(eventChan)
 				return
 			}
@@ -473,7 +473,7 @@ func (o *openaiClient) stream(ctx context.Context, messages []message.Message, t
 				case <-ctx.Done():
 					// context cancelled
 					if ctx.Err() == nil {
-						eventChan <- ProviderEvent{Type: EventError, Error: ctx.Err()}
+						sendEvent(eventChan, ProviderEvent{Type: EventError, Error: ctx.Err()})
 					}
 					close(eventChan)
 					return
@@ -481,7 +481,7 @@ func (o *openaiClient) stream(ctx context.Context, messages []message.Message, t
 					continue
 				}
 			}
-			eventChan <- ProviderEvent{Type: EventError, Error: retryErr}
+			sendEvent(eventChan, ProviderEvent{Type: EventError, Error: retryErr})
 			close(eventChan)
 			return
 		}

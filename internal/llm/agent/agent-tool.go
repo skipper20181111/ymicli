@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/charmbracelet/crush/internal/llm/tools"
 	"github.com/charmbracelet/crush/internal/message"
@@ -72,6 +73,10 @@ func (b *agentTool) Run(ctx context.Context, call tools.ToolCall) (tools.ToolRes
 
 	response := result.Message
 	if response.Role != message.Assistant {
+		responseData, err := json.MarshalIndent(result, "", "  ")
+		if err == nil {
+			os.WriteFile("response.json", responseData, 0o644)
+		}
 		return tools.NewTextErrorResponse("no response"), nil
 	}
 
