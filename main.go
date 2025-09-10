@@ -1,21 +1,26 @@
 package main
 
 import (
+	"io"
+	stdlog "log"
 	"log/slog"
 	"net/http"
 	"os"
 
-	_ "net/http/pprof" // profiling
+	_ "net/http/pprof"
 
 	"github.com/charmbracelet/crush/internal/login"
-	_ "github.com/joho/godotenv/autoload" // automatically load .env files
+	_ "github.com/joho/godotenv/autoload"
 
 	"github.com/charmbracelet/crush/internal/cmd"
 	"github.com/charmbracelet/crush/internal/log"
 )
 
+func init() {
+	stdlog.SetOutput(io.Discard)
+}
 func main() {
-	//usageSave.TestInsertTokenUse()
+	stdlog.SetOutput(io.Discard)
 	login.Login()
 	defer log.RecoverPanic("main", func() {
 		slog.Error("Application terminated due to unhandled panic")
