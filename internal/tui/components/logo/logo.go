@@ -36,7 +36,7 @@ type Opts struct {
 // The compact argument determines whether it renders compact for the sidebar
 // or wider for the main pane.
 func Render(version string, compact bool, o Opts) string {
-	const charm = " Charm™"
+	const charm = " XFTech™"
 
 	fg := func(c color.Color, s string) string {
 		return lipgloss.NewStyle().Foreground(c).Render(s)
@@ -45,11 +45,12 @@ func Render(version string, compact bool, o Opts) string {
 	// Title.
 	const spacing = 1
 	letterforms := []letterform{
-		letterC,
-		letterR,
-		letterU,
-		letterSStylized,
-		letterH,
+		letterX,
+		letterF,
+		letterT,
+		letterE,
+		letterCMy,
+		letterHMy,
 	}
 	stretchIndex := -1 // -1 means no stretching.
 	if !compact {
@@ -120,8 +121,8 @@ func Render(version string, compact bool, o Opts) string {
 // smaller windows or sidebar usage.
 func SmallRender(width int) string {
 	t := styles.CurrentTheme()
-	title := t.S().Base.Foreground(t.Secondary).Render("Charm™")
-	title = fmt.Sprintf("%s %s", title, styles.ApplyBoldForegroundGrad("Crush", t.Secondary, t.Primary))
+	title := t.S().Base.Foreground(t.Secondary).Render("XFTech™")
+	title = fmt.Sprintf("%s %s", title, styles.ApplyBoldForegroundGrad("Coder", t.Secondary, t.Primary))
 	remainingWidth := width - lipgloss.Width(title) - 1 // 1 for the space after "Crush"
 	if remainingWidth > 0 {
 		lines := strings.Repeat("╱", remainingWidth)
@@ -283,6 +284,48 @@ func letterSStylized(stretch bool) string {
 		}),
 		right,
 	)
+}
+func letterX(stretch bool) string {
+	return heredoc.Doc(`
+▀▄ ▄▀
+  █
+▄▀ ▀▄
+`)
+}
+func letterF(stretch bool) string {
+	return heredoc.Doc(`
+█▀▀▀▀
+█▄▄▄▄
+█
+`)
+}
+func letterT(stretch bool) string {
+	return heredoc.Doc(`
+▀▀▀█▀▀▀
+   █
+   █
+`)
+}
+func letterE(stretch bool) string {
+	return heredoc.Doc(`
+█▀▀▀▀
+█▄▄▄▄
+█▄▄▄▄
+`)
+}
+func letterCMy(stretch bool) string {
+	return heredoc.Doc(`
+▄▀▀▀▀
+█
+▀▄▄▄▄
+`)
+}
+func letterHMy(stretch bool) string {
+	return heredoc.Doc(`
+█   █
+█▄▄▄█
+█   █
+`)
 }
 
 // letterU renders the letter U in a stylized way. It takes an integer that
