@@ -84,7 +84,7 @@ func logEvent(event ProviderEvent) {
 
 // sendEvent logs the event and then sends it to the channel
 func sendEvent(eventChan chan<- ProviderEvent, event ProviderEvent) {
-	logEvent(event)
+	//logEvent(event)
 	eventChan <- event
 }
 
