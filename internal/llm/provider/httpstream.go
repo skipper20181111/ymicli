@@ -246,6 +246,9 @@ func (h *httpStreamClient) convertMessages(messages []message.Message) []map[str
 		})
 	}
 
+	// Track tool calls that failed (Finished = false) to exclude their results
+	failedToolCallIDs := make(map[string]bool)
+
 	for _, msg := range messages {
 		switch msg.Role {
 		case message.User:
@@ -306,11 +309,14 @@ func (h *httpStreamClient) convertMessages(messages []message.Message) []map[str
 					}
 				}
 
-				// Include tool calls that either finished successfully or have results
+				// Only include tool calls that finished successfully AND have results
 				validCalls := make([]message.ToolCall, 0, len(msg.ToolCalls()))
 				for _, call := range msg.ToolCalls() {
-					if call.Finished || validToolCallIDs[call.ID] {
+					if call.Finished && validToolCallIDs[call.ID] {
 						validCalls = append(validCalls, call)
+					} else if !call.Finished {
+						// Record failed tool call IDs to exclude their results later
+						failedToolCallIDs[call.ID] = true
 					}
 				}
 
@@ -341,11 +347,14 @@ func (h *httpStreamClient) convertMessages(messages []message.Message) []map[str
 
 		case message.Tool:
 			for _, result := range msg.ToolResults() {
-				openaiMessages = append(openaiMessages, map[string]interface{}{
-					"role":         "tool",
-					"content":      result.Content,
-					"tool_call_id": result.ToolCallID,
-				})
+				// Skip tool results for failed tool calls
+				if !failedToolCallIDs[result.ToolCallID] {
+					openaiMessages = append(openaiMessages, map[string]interface{}{
+						"role":         "tool",
+						"content":      result.Content,
+						"tool_call_id": result.ToolCallID,
+					})
+				}
 			}
 		}
 	}

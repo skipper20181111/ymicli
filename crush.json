@@ -7,24 +7,24 @@
   },
   "providers": {
     "xinfei-common": {
-      "type": "httpstream",
+      "type": "openai",
       "base_url": "https://api.bltcy.cn/v1",
-      "api_key": "sk-rC56K5uGT2WN6WfMoaHNFL7T0PanYVWdwNV5LuH8sfblk5MY",
+      "api_key": "sk-6PLYLNgR4ilVmVmmi7INO8zeQhBqIOKMzAynCjCz5m7PxbCF",
       "models": [
         {
-          "id": "claude-sonnet-4-20250514",
-          "name": "Claude 4 Sonnet",
+          "id": "gpt-5",
+          "name": "gpt-5",
           "supports_attachments": true,
-          "cost_per_1m_in": 3,
-          "cost_per_1m_out": 15,
-          "cost_per_1m_in_cached": 3,
-          "cost_per_1m_out_cached": 15,
-          "context_window": 1000000,
+          "cost_per_1m_in": 5,
+          "cost_per_1m_out": 40,
+          "cost_per_1m_in_cached": 5,
+          "cost_per_1m_out_cached": 40,
+          "context_window": 500000,
           "default_max_tokens": 64000
         }
       ]
     },
-    "xinfei-common-no-stream": {
+    "xinfei-common-openai": {
       "type": "openai",
       "base_url": "https://api.bltcy.cn/v1",
       "api_key": "sk-rC56K5uGT2WN6WfMoaHNFL7T0PanYVWdwNV5LuH8sfblk5MY",
@@ -39,24 +39,17 @@
           "cost_per_1m_out_cached": 15,
           "context_window": 200000,
           "default_max_tokens": 64000
-        }
-      ]
-    },
-    "xinfei-GPT5": {
-      "type": "httpnostream",
-      "base_url": "https://api.bltcy.cn/v1",
-      "api_key": "sk-4g353GFwqUZI7EoGLpfszJtqlJMfyh5jHKVOTFXFFjZd7gPX",
-      "models": [
+        },
         {
-          "id": "gpt-5",
-          "name": "gpt-5",
-          "cost_per_1m_in": 3.75,
-          "cost_per_1m_out": 30,
-          "cost_per_1m_in_cached": 3.75,
-          "cost_per_1m_out_cached": 30,
-          "context_window": 256000,
-          "default_max_tokens": 64000,
-          "supports_attachments": true
+          "id": "gemini-2.5-pro",
+          "name": "gemini-2.5-pro",
+          "supports_attachments": true,
+          "cost_per_1m_in": 1.5,
+          "cost_per_1m_out": 10,
+          "cost_per_1m_in_cached": 1.5,
+          "cost_per_1m_out_cached": 10,
+          "context_window": 500000,
+          "default_max_tokens": 64000
         }
       ]
     }

@@ -66,6 +66,19 @@ func createOpenAIClient(opts providerClientOptions) openai.Client {
 
 func (o *openaiClient) convertMessages(messages []message.Message) (openaiMessages []openai.ChatCompletionMessageParamUnion) {
 	isAnthropicModel := o.providerOptions.config.ID == string(catwalk.InferenceProviderOpenRouter) && strings.HasPrefix(o.Model().ID, "anthropic/")
+
+	// 首先遍历所有消息，收集未完成的工具调用ID
+	unfinishedToolCallIDs := make(map[string]bool)
+	for _, msg := range messages {
+		if msg.Role == message.Assistant {
+			for _, toolCall := range msg.ToolCalls() {
+				if !toolCall.Finished {
+					unfinishedToolCallIDs[toolCall.ID] = true
+				}
+			}
+		}
+	}
+
 	// Add system message first
 	systemMessage := o.providerOptions.systemMessage
 	if o.providerOptions.systemPromptPrefix != "" {
@@ -129,7 +142,8 @@ func (o *openaiClient) convertMessages(messages []message.Message) (openaiMessag
 			if len(msg.ToolCalls()) > 0 {
 				finished := make([]message.ToolCall, 0, len(msg.ToolCalls()))
 				for _, call := range msg.ToolCalls() {
-					if call.Finished {
+					// 只包含已完成且不在未完成列表中的工具调用
+					if call.Finished && !unfinishedToolCallIDs[call.ID] {
 						finished = append(finished, call)
 					}
 				}
@@ -170,10 +184,14 @@ func (o *openaiClient) convertMessages(messages []message.Message) (openaiMessag
 			})
 
 		case message.Tool:
+			// 遍历工具结果，跳过未完成工具调用对应的结果
 			for _, result := range msg.ToolResults() {
-				openaiMessages = append(openaiMessages,
-					openai.ToolMessage(result.Content, result.ToolCallID),
-				)
+				// 只有当工具调用ID不在未完成列表中时才包含该结果
+				if !unfinishedToolCallIDs[result.ToolCallID] {
+					openaiMessages = append(openaiMessages,
+						openai.ToolMessage(result.Content, result.ToolCallID),
+					)
+				}
 			}
 		}
 	}
