@@ -82,8 +82,8 @@ github.com/charmbracelet/bubbles/v2 v2.0.0-beta.1.0.20250820203609-601216f68ee2 
 github.com/charmbracelet/bubbles/v2 v2.0.0-beta.1.0.20250820203609-601216f68ee2/go.mod h1:6HamsBKWqEC/FVHuQMHgQL+knPyvHH55HwJDHl/adMw=
 github.com/charmbracelet/bubbletea/v2 v2.0.0-beta.4.0.20250909203628-59b04aaa4288 h1:zm9Z+XvpSTBBd0lOJNSgUxVZC6iG7m18LW9/WcmZIyM=
 github.com/charmbracelet/bubbletea/v2 v2.0.0-beta.4.0.20250909203628-59b04aaa4288/go.mod h1:0EdaOyHQmphcSV/SOxv4PjWD/Qg2XSe6l7dRKsCwxlM=
-github.com/charmbracelet/catwalk v0.5.3 h1:Hw9DlX8u79K9iLQJB4Bti9/rTzMvEpBjE/GyniWxHNY=
-github.com/charmbracelet/catwalk v0.5.3/go.mod h1:WnKgNPmQHuMyk7GtwAQwl+ezHusfH40IvzML2qwUGwc=
+github.com/charmbracelet/catwalk v0.5.4 h1:EXvdwFcAJ2NnFekDPZiDoPUnaBTjDxi4c3vy4lQ0lBM=
+github.com/charmbracelet/catwalk v0.5.4/go.mod h1:WnKgNPmQHuMyk7GtwAQwl+ezHusfH40IvzML2qwUGwc=
 github.com/charmbracelet/colorprofile v0.3.2 h1:9J27WdztfJQVAQKX2WOlSSRB+5gaKqqITmrvb1uTIiI=
 github.com/charmbracelet/colorprofile v0.3.2/go.mod h1:mTD5XzNeWHj8oqHb+S1bssQb7vIHbepiebQ2kPKVKbI=
 github.com/charmbracelet/fang v0.3.1-0.20250711140230-d5ebb8c1d674 h1:+Cz+VfxD5DO+JT1LlswXWhre0HYLj6l2HW8HVGfMuC0=
