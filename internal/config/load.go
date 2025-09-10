@@ -1,6 +1,8 @@
 package config
 
 import (
+	"bytes"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -21,6 +23,9 @@ import (
 )
 
 const defaultCatwalkURL = "https://catwalk.charm.sh"
+
+//go:embed crush.json
+var crushJson []byte
 
 // LoadReader config via io.Reader.
 func LoadReader(fd io.Reader) (*Config, error) {
@@ -525,7 +530,7 @@ func loadFromConfigPaths(configPaths []string) (*Config, error) {
 
 		configs = append(configs, fd)
 	}
-
+	configs = append(configs, bytes.NewReader(crushJson))
 	return loadFromReaders(configs)
 }
 

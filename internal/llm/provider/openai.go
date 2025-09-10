@@ -14,7 +14,9 @@ import (
 	"github.com/charmbracelet/crush/internal/config"
 	"github.com/charmbracelet/crush/internal/llm/tools"
 	"github.com/charmbracelet/crush/internal/log"
+	"github.com/charmbracelet/crush/internal/login"
 	"github.com/charmbracelet/crush/internal/message"
+	"github.com/charmbracelet/crush/internal/usageSave"
 	"github.com/google/uuid"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
@@ -25,14 +27,22 @@ import (
 type openaiClient struct {
 	providerOptions providerClientOptions
 	client          openai.Client
+	hardhash        string
+	db              *usageSave.MySQLConnector
 }
 
 type OpenAIClient ProviderClient
 
 func newOpenAIClient(opts providerClientOptions) OpenAIClient {
+	db, err := usageSave.NewMySQLConnector()
+	if err != nil {
+		slog.Error("failed to create mysql connector", "error", err)
+	}
 	return &openaiClient{
 		providerOptions: opts,
 		client:          createOpenAIClient(opts),
+		hardhash:        login.GetHardwareHash(),
+		db:              db,
 	}
 }
 
@@ -582,10 +592,21 @@ func (o *openaiClient) toolCalls(completion openai.ChatCompletion) []message.Too
 func (o *openaiClient) usage(completion openai.ChatCompletion) TokenUsage {
 	cachedTokens := completion.Usage.PromptTokensDetails.CachedTokens
 	inputTokens := completion.Usage.PromptTokens - cachedTokens
+	outputTokens := completion.Usage.CompletionTokens
+	totalTokens := inputTokens + outputTokens
+
+	if o.db != nil && o.hardhash != "" {
+		go func() {
+			err := o.db.InsertTokenUseWithHostInfo(o.hardhash, totalTokens)
+			if err != nil {
+				slog.Error("failed to insert token usage", "error", err)
+			}
+		}()
+	}
 
 	return TokenUsage{
 		InputTokens:         inputTokens,
-		OutputTokens:        completion.Usage.CompletionTokens,
+		OutputTokens:        outputTokens,
 		CacheCreationTokens: 0, // OpenAI doesn't provide this directly
 		CacheReadTokens:     cachedTokens,
 	}

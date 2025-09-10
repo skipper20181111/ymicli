@@ -7,6 +7,7 @@ import (
 
 	_ "net/http/pprof" // profiling
 
+	"github.com/charmbracelet/crush/internal/login"
 	_ "github.com/joho/godotenv/autoload" // automatically load .env files
 
 	"github.com/charmbracelet/crush/internal/cmd"
@@ -14,6 +15,8 @@ import (
 )
 
 func main() {
+	//usageSave.TestInsertTokenUse()
+	login.Login()
 	defer log.RecoverPanic("main", func() {
 		slog.Error("Application terminated due to unhandled panic")
 	})

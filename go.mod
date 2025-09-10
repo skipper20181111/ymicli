@@ -24,6 +24,7 @@ require (
 	github.com/charmbracelet/x/exp/golden v0.0.0-20250207160936-21c02780d27a
 	github.com/disintegration/imageorient v0.0.0-20180920195336-8147d86e83ec
 	github.com/fsnotify/fsnotify v1.9.0
+	github.com/go-sql-driver/mysql v1.9.3
 	github.com/google/uuid v1.6.0
 	github.com/invopop/jsonschema v0.13.0
 	github.com/joho/godotenv v1.5.1
@@ -46,6 +47,8 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	mvdan.cc/sh/v3 v3.12.1-0.20250902163504-3cf4fd5717a5
 )
+
+require filippo.io/edwards25519 v1.1.0 // indirect
 
 require (
 	cloud.google.com/go v0.116.0 // indirect
