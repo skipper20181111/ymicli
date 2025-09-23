@@ -382,7 +382,7 @@ func (o *openaiClient) stream(ctx context.Context, messages []message.Message, t
 						reasoningStr := ""
 						json.Unmarshal([]byte(reasoning.Raw()), &reasoningStr)
 						if reasoningStr != "" {
-							eventChan <- ProviderEvent{
+							sendEvent(eventChan, ProviderEvent{
 								Type:     EventThinkingDelta,
 								Thinking: reasoningStr,
 							})
@@ -513,6 +513,7 @@ func (o *openaiClient) stream(ctx context.Context, messages []message.Message, t
 					// context cancelled
 					if ctx.Err() != nil {
 						sendEvent(eventChan, ProviderEvent{Type: EventError, Error: ctx.Err()})
+					}
 					close(eventChan)
 					return
 				case <-time.After(time.Duration(after) * time.Millisecond):
