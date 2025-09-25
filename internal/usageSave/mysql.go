@@ -21,6 +21,7 @@ type MySQLConnector struct {
 }
 
 func NewMySQLConnector() (*MySQLConnector, error) {
+	//dsn := "ailaunchcore_qa:xvt8++mN35YwOiLwL2nF@tcp(qa1-mysql.testxinfei.cn:3308)/ailaunchcore?charset=utf8mb4&parseTime=True&loc=Local"
 	dsn := "ailaunchcore_qa:xvt8++mN35YwOiLwL2nF@tcp(qa1-mysql.testxinfei.cn:3308)/ailaunchcore?charset=utf8mb4&parseTime=True&loc=Local"
 
 	db, err := sql.Open("mysql", dsn)

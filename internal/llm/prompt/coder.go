@@ -48,6 +48,9 @@ var geminiCoderPrompt []byte
 //go:embed v2.md
 var coderV2Prompt []byte
 
+//go:embed VbenAdmin.md
+var VbenAdminPrompt []byte
+
 func getEnvironmentInfo() string {
 	cwd := config.Get().WorkingDir()
 	isGit := isGitRepo(cwd)

@@ -12,6 +12,7 @@ import (
 
 	"github.com/charmbracelet/catwalk/pkg/catwalk"
 	"github.com/charmbracelet/crush/internal/config"
+	"github.com/charmbracelet/crush/internal/llm/prompt"
 	"github.com/charmbracelet/crush/internal/llm/tools"
 	"github.com/charmbracelet/crush/internal/log"
 	"github.com/charmbracelet/crush/internal/login"
@@ -94,7 +95,11 @@ func (o *openaiClient) convertMessages(messages []message.Message) (openaiMessag
 	if o.providerOptions.systemPromptPrefix != "" {
 		systemMessage = o.providerOptions.systemPromptPrefix + "\n" + systemMessage
 	}
-
+	model := o.providerOptions.model(o.providerOptions.modelType)
+	switch model.Name {
+	case "vue-frontend-Agent":
+		systemMessage = string(prompt.VbenAdminPrompt)
+	}
 	system := openai.SystemMessage(systemMessage)
 	if isAnthropicModel && !o.providerOptions.disableCache {
 		systemTextBlock := openai.ChatCompletionContentPartTextParam{Text: systemMessage}
