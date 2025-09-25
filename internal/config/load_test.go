@@ -492,6 +492,29 @@ func TestConfig_setupAgentsWithDisabledTools(t *testing.T) {
 	assert.Equal(t, []string{"glob", "ls", "sourcegraph", "view"}, taskAgent.AllowedTools)
 }
 
+func TestConfig_setupAgentsWithEveryReadOnlyToolDisabled(t *testing.T) {
+	cfg := &Config{
+		Options: &Options{
+			DisabledTools: []string{
+				"glob",
+				"grep",
+				"ls",
+				"sourcegraph",
+				"view",
+			},
+		},
+	}
+
+	cfg.SetupAgents()
+	coderAgent, ok := cfg.Agents["coder"]
+	require.True(t, ok)
+	assert.Equal(t, []string{"bash", "download", "edit", "multiedit", "fetch", "write"}, coderAgent.AllowedTools)
+
+	taskAgent, ok := cfg.Agents["task"]
+	require.True(t, ok)
+	assert.Equal(t, []string{}, taskAgent.AllowedTools)
+}
+
 func TestConfig_configureProvidersWithDisabledProvider(t *testing.T) {
 	knownProviders := []catwalk.Provider{
 		{
@@ -520,10 +543,10 @@ func TestConfig_configureProvidersWithDisabledProvider(t *testing.T) {
 	err := cfg.configureProviders(env, resolver, knownProviders)
 	require.NoError(t, err)
 
-	// Provider should be removed from config when disabled
-	require.Equal(t, cfg.Providers.Len(), 0)
-	_, exists := cfg.Providers.Get("openai")
-	require.False(t, exists)
+	require.Equal(t, cfg.Providers.Len(), 1)
+	prov, exists := cfg.Providers.Get("openai")
+	require.True(t, exists)
+	require.True(t, prov.Disable)
 }
 
 func TestConfig_configureProvidersCustomProviderValidation(t *testing.T) {

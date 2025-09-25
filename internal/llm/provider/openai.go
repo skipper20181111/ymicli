@@ -25,6 +25,9 @@ import (
 	"github.com/openai/openai-go/shared"
 )
 
+type Demo struct {
+	Msg string `json:"msg"`
+}
 type openaiClient struct {
 	providerOptions providerClientOptions
 	client          openai.Client
@@ -78,17 +81,30 @@ func createOpenAIClient(opts providerClientOptions) openai.Client {
 func (o *openaiClient) convertMessages(messages []message.Message) (openaiMessages []openai.ChatCompletionMessageParamUnion) {
 	isAnthropicModel := o.providerOptions.config.ID == string(catwalk.InferenceProviderOpenRouter) && strings.HasPrefix(o.Model().ID, "anthropic/")
 
-	// 首先遍历所有消息，收集未完成的工具调用ID
-	unfinishedToolCallIDs := make(map[string]bool)
+	// 记录对话开始分割符
+	slog.Info("=== CONVERSATION START ===", "timestamp", time.Now().Format(time.RFC3339))
+
+	// 首先遍历所有消息，收集已完成的工具调用ID
+	finishedToolCallIDs := make(map[string]bool)
+	allToolCallIDs := make([]string, 0)
 	for _, msg := range messages {
 		if msg.Role == message.Assistant {
 			for _, toolCall := range msg.ToolCalls() {
-				if !toolCall.Finished {
-					unfinishedToolCallIDs[toolCall.ID] = true
+				allToolCallIDs = append(allToolCallIDs, toolCall.ID)
+				slog.Info("ToolCall found", "call_id", toolCall.ID, "name", toolCall.Name, "finished", toolCall.Finished)
+				if toolCall.Finished {
+					finishedToolCallIDs[toolCall.ID] = true
 				}
 			}
 		}
 	}
+
+	// 记录完成的工具调用ID列表
+	finishedIDs := make([]string, 0, len(finishedToolCallIDs))
+	for id := range finishedToolCallIDs {
+		finishedIDs = append(finishedIDs, id)
+	}
+	slog.Info("Finished tool call IDs", "finished_ids", finishedIDs, "total_tool_calls", len(allToolCallIDs))
 
 	// Add system message first
 	systemMessage := o.providerOptions.systemMessage
@@ -121,6 +137,8 @@ func (o *openaiClient) convertMessages(messages []message.Message) (openaiMessag
 		if i > len(messages)-3 {
 			cache = true
 		}
+		// 记录每条消息
+		slog.Info("Processing message", "role", string(msg.Role), "content_length", len(msg.Content().String()))
 		switch msg.Role {
 		case message.User:
 			var content []openai.ChatCompletionContentPartUnionParam
@@ -157,9 +175,17 @@ func (o *openaiClient) convertMessages(messages []message.Message) (openaiMessag
 			if len(msg.ToolCalls()) > 0 {
 				finished := make([]message.ToolCall, 0, len(msg.ToolCalls()))
 				for _, call := range msg.ToolCalls() {
-					// 只包含已完成且不在未完成列表中的工具调用
-					if call.Finished && !unfinishedToolCallIDs[call.ID] {
+					// 只包含在已完成列表中的工具调用
+					if finishedToolCallIDs[call.ID] {
+						err := json.Unmarshal([]byte(call.Input), &Demo{})
+						if len(call.Input) < 3 || err != nil {
+							call.Input = "{\"msg\":\"可能是因为json格式错误导致解析失败，所以没有有效input内容\"}"
+						}
 						finished = append(finished, call)
+
+						slog.Info("Including finished tool call", "call_id", call.ID, "name", call.Name, "input", call.Input)
+					} else {
+						slog.Info("Excluding unfinished tool call", "call_id", call.ID, "name", call.Name)
 					}
 				}
 				if len(finished) > 0 {
@@ -199,17 +225,23 @@ func (o *openaiClient) convertMessages(messages []message.Message) (openaiMessag
 			})
 
 		case message.Tool:
-			// 遍历工具结果，跳过未完成工具调用对应的结果
+			// 遍历工具结果，只包含已完成工具调用对应的结果
 			for _, result := range msg.ToolResults() {
-				// 只有当工具调用ID不在未完成列表中时才包含该结果
-				if !unfinishedToolCallIDs[result.ToolCallID] {
+				// 只有当工具调用ID在已完成列表中时才包含该结果
+				if finishedToolCallIDs[result.ToolCallID] {
+					slog.Info("Including tool result", "call_id", result.ToolCallID, "content_length", result.Content)
 					openaiMessages = append(openaiMessages,
 						openai.ToolMessage(result.Content, result.ToolCallID),
 					)
+				} else {
+					slog.Info("Excluding tool result for unfinished call", "call_id", result.ToolCallID)
 				}
 			}
 		}
 	}
+
+	// 记录对话结束分割符和总结信息
+	slog.Info("=== CONVERSATION END ===", "total_messages", len(openaiMessages), "timestamp", time.Now().Format(time.RFC3339))
 
 	return openaiMessages
 }

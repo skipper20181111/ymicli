@@ -131,11 +131,6 @@ func (c *Config) configureProviders(env env.Env, resolver VariableResolver, know
 		config, configExists := c.Providers.Get(string(p.ID))
 		// if the user configured a known provider we need to allow it to override a couple of parameters
 		if configExists {
-			if config.Disable {
-				slog.Debug("Skipping provider due to disable flag", "provider", p.ID)
-				c.Providers.Del(string(p.ID))
-				continue
-			}
 			if config.BaseURL != "" {
 				p.APIEndpoint = config.BaseURL
 			}
@@ -280,7 +275,7 @@ func (c *Config) configureProviders(env env.Env, resolver VariableResolver, know
 			c.Providers.Del(id)
 			continue
 		}
-		if providerConfig.Type != catwalk.TypeOpenAI && providerConfig.Type != catwalk.TypeAnthropic && providerConfig.Type != "httpstream" {
+		if providerConfig.Type != catwalk.TypeOpenAI && providerConfig.Type != catwalk.TypeAnthropic && providerConfig.Type != catwalk.TypeGemini {
 			slog.Warn("Skipping custom provider because the provider type is not supported", "provider", id, "type", providerConfig.Type)
 			c.Providers.Del(id)
 			continue
@@ -356,10 +351,13 @@ func (c *Config) applyLSPDefaults() {
 
 	// Apply defaults to each LSP configuration
 	for name, cfg := range c.LSP {
-		// Try to get defaults from powernap based on command name
-		base, ok := configManager.GetServer(cfg.Command)
+		// Try to get defaults from powernap based on name or command name.
+		base, ok := configManager.GetServer(name)
 		if !ok {
-			continue
+			base, ok = configManager.GetServer(cfg.Command)
+			if !ok {
+				continue
+			}
 		}
 		if cfg.Options == nil {
 			cfg.Options = base.Settings
@@ -372,6 +370,15 @@ func (c *Config) applyLSPDefaults() {
 		}
 		if len(cfg.RootMarkers) == 0 {
 			cfg.RootMarkers = base.RootMarkers
+		}
+		if cfg.Command == "" {
+			cfg.Command = base.Command
+		}
+		if len(cfg.Args) == 0 {
+			cfg.Args = base.Args
+		}
+		if len(cfg.Env) == 0 {
+			cfg.Env = base.Environment
 		}
 		// Update the config in the map
 		c.LSP[name] = cfg

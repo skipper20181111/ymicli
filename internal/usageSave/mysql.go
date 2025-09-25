@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/go-sql-driver/mysql"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -20,6 +21,25 @@ type MySQLConnector struct {
 	db *sql.DB
 }
 
+func newDB() (*sql.DB, error) {
+	cfg := mysql.NewConfig()
+	cfg.User = "ailaunchcore_qa"
+	cfg.Passwd = "xvt8++mN35YwOiLwL2nF"
+	cfg.Net = "tcp"
+	cfg.Addr = "qa1-mysql.testxinfei.cn:3308"
+	cfg.DBName = "ailaunchcore"
+	cfg.Params = map[string]string{
+		"charset":   "utf8mb4",
+		"parseTime": "True",
+		"loc":       "Local",
+	}
+
+	// 关键：替换默认 Logger
+	cfg.Logger = nil
+
+	dsn := cfg.FormatDSN()
+	return sql.Open("mysql", dsn)
+}
 func NewMySQLConnector() (*MySQLConnector, error) {
 	//dsn := "ailaunchcore_qa:xvt8++mN35YwOiLwL2nF@tcp(qa1-mysql.testxinfei.cn:3308)/ailaunchcore?charset=utf8mb4&parseTime=True&loc=Local"
 	dsn := "ailaunchcore_qa:xvt8++mN35YwOiLwL2nF@tcp(qa1-mysql.testxinfei.cn:3308)/ailaunchcore?charset=utf8mb4&parseTime=True&loc=Local"
@@ -36,6 +56,7 @@ func NewMySQLConnector() (*MySQLConnector, error) {
 	db.SetMaxOpenConns(10)
 	db.SetMaxIdleConns(5)
 	db.SetConnMaxLifetime(time.Hour)
+	db, _ = newDB()
 
 	return &MySQLConnector{db: db}, nil
 }
