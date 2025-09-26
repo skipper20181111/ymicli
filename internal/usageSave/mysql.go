@@ -53,10 +53,9 @@ func NewMySQLConnector() (*MySQLConnector, error) {
 		return nil, err
 	}
 
-	db.SetMaxOpenConns(10)
-	db.SetMaxIdleConns(5)
+	db.SetMaxOpenConns(1)
+	db.SetMaxIdleConns(1)
 	db.SetConnMaxLifetime(time.Hour)
-	db, _ = newDB()
 
 	return &MySQLConnector{db: db}, nil
 }
