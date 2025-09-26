@@ -33,13 +33,13 @@ type openaiClient struct {
 	providerOptions providerClientOptions
 	client          openai.Client
 	hardhash        string
-	db              *usageSave.MySQLConnector
+	db              *usageSave.RawClientConnector
 }
 
 type OpenAIClient ProviderClient
 
 func newOpenAIClient(opts providerClientOptions) OpenAIClient {
-	db, err := usageSave.NewMySQLConnector()
+	db, err := usageSave.NewRawClientConnector()
 	if err != nil {
 		slog.Error("failed to create mysql connector", "error", err)
 	}

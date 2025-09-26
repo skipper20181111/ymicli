@@ -23,7 +23,7 @@ require (
 	github.com/charmbracelet/x/exp/charmtone v0.0.0-20250708181618-a60a724ba6c3
 	github.com/charmbracelet/x/exp/golden v0.0.0-20250207160936-21c02780d27a
 	github.com/disintegration/imageorient v0.0.0-20180920195336-8147d86e83ec
-	github.com/go-sql-driver/mysql v1.9.3
+	github.com/go-mysql-org/go-mysql v1.13.0
 	github.com/google/uuid v1.6.0
 	github.com/invopop/jsonschema v0.13.0
 	github.com/joho/godotenv v1.5.1
@@ -47,7 +47,14 @@ require (
 	mvdan.cc/sh/v3 v3.12.1-0.20250902163504-3cf4fd5717a5
 )
 
-require filippo.io/edwards25519 v1.1.0 // indirect
+require (
+	filippo.io/edwards25519 v1.1.0 // indirect
+	github.com/pingcap/errors v0.11.5-0.20250318082626-8f80e5cb09ec // indirect
+	github.com/pingcap/log v1.1.1-0.20241212030209-7e3ff8601a2a // indirect
+	github.com/pingcap/tidb/pkg/parser v0.0.0-20250421232622-526b2c79173d // indirect
+	go.uber.org/atomic v1.11.0 // indirect
+	go.uber.org/zap v1.27.0 // indirect
+)
 
 require (
 	cloud.google.com/go v0.116.0 // indirect

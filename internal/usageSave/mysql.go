@@ -1,128 +1,92 @@
 package usageSave
 
 import (
-	"database/sql"
+	"errors"
 	"time"
 
-	"github.com/go-sql-driver/mysql"
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/go-mysql-org/go-mysql/client"
 )
 
+// TokenUse 结构体（按需保留字段）
 type TokenUse struct {
-	ID         int64     `db:"id"`
-	UserSN     string    `db:"user_sn"`
-	Token      int64     `db:"token"`
-	CreateTime time.Time `db:"create_time"`
-	IP         *string   `db:"ip"`
-	SystemType *string   `db:"system_type"`
+	ID         int64
+	UserSN     string
+	Token      int64
+	CreateTime time.Time
+	IP         *string
+	SystemType *string
 }
 
-type MySQLConnector struct {
-	db *sql.DB
+type RawClientConnector struct {
+	conn *client.Conn
 }
 
-func newDB() (*sql.DB, error) {
-	cfg := mysql.NewConfig()
-	cfg.User = "ailaunchcore_qa"
-	cfg.Passwd = "xvt8++mN35YwOiLwL2nF"
-	cfg.Net = "tcp"
-	cfg.Addr = "qa1-mysql.testxinfei.cn:3308"
-	cfg.DBName = "ailaunchcore"
-	cfg.Params = map[string]string{
-		"charset":   "utf8mb4",
-		"parseTime": "True",
-		"loc":       "Local",
-	}
+// NewRawClientConnector 建立裸连接（不经过 database/sql）
+func NewRawClientConnector() (*RawClientConnector, error) {
+	addr := "qa1-mysql.testxinfei.cn:3308"
+	user := "ailaunchcore_qa"
+	pass := "xvt8++mN35YwOiLwL2nF"
+	dbname := "ailaunchcore"
 
-	// 关键：替换默认 Logger
-	cfg.Logger = nil
-
-	dsn := cfg.FormatDSN()
-	return sql.Open("mysql", dsn)
-}
-func NewMySQLConnector() (*MySQLConnector, error) {
-	//dsn := "ailaunchcore_qa:xvt8++mN35YwOiLwL2nF@tcp(qa1-mysql.testxinfei.cn:3308)/ailaunchcore?charset=utf8mb4&parseTime=True&loc=Local"
-	dsn := "ailaunchcore_qa:xvt8++mN35YwOiLwL2nF@tcp(qa1-mysql.testxinfei.cn:3308)/ailaunchcore?charset=utf8mb4&parseTime=True&loc=Local"
-
-	db, err := sql.Open("mysql", dsn)
+	conn, err := client.Connect(addr, user, pass, dbname)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := db.Ping(); err != nil {
+	// 可选：设置读写超时
+	conn.ReadTimeout = 5 * time.Second
+	conn.WriteTimeout = 5 * time.Second
+
+	// Ping 验证连通性
+	if err := conn.Ping(); err != nil {
+		conn.Close()
 		return nil, err
 	}
 
-	db.SetMaxOpenConns(1)
-	db.SetMaxIdleConns(1)
-	db.SetConnMaxLifetime(time.Hour)
-
-	return &MySQLConnector{db: db}, nil
+	return &RawClientConnector{conn: conn}, nil
 }
 
-func (c *MySQLConnector) InsertTokenUse(userSN string, token int64, ip, systemType *string) error {
-	query := `
-		INSERT INTO token_use (user_sn, token, create_time, ip, system_type) 
-		VALUES (?, ?, NOW(), ?, ?)
-	`
+// InsertTokenUse 插入数据（注意：将 nil 映射为 SQL NULL）
+func (c *RawClientConnector) InsertTokenUse(userSN string, token int64, ip, systemType *string) error {
+	if c == nil || c.conn == nil {
+		return errors.New("ErrNotConnected") // 你可以定义一个错误变量
+	}
 
-	_, err := c.db.Exec(query, userSN, token, ip, systemType)
+	query := `INSERT INTO token_use (user_sn, token, create_time, ip, system_type) VALUES (?, ?, NOW(), ?, ?)`
+
+	var ipVal interface{}
+	if ip != nil {
+		ipVal = *ip
+	}
+	var sysVal interface{}
+	if systemType != nil {
+		sysVal = *systemType
+	}
+
+	res, err := c.conn.Execute(query, userSN, token, ipVal, sysVal)
 	if err != nil {
 		return err
 	}
-
+	// 记得关闭结果释放资源
+	res.Close()
 	return nil
 }
 
-func (c *MySQLConnector) GetTokenUseByUserSN(userSN string, limit int) ([]TokenUse, error) {
-	query := `
-		SELECT id, user_sn, token, create_time, ip, system_type 
-		FROM token_use 
-		WHERE user_sn = ? 
-		ORDER BY create_time DESC 
-		LIMIT ?
-	`
-
-	rows, err := c.db.Query(query, userSN, limit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var results []TokenUse
-	for rows.Next() {
-		var tu TokenUse
-		err := rows.Scan(&tu.ID, &tu.UserSN, &tu.Token, &tu.CreateTime, &tu.IP, &tu.SystemType)
-		if err != nil {
-			return nil, err
-		}
-		results = append(results, tu)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return results, nil
-}
-
-func (c *MySQLConnector) InsertTokenUseWithHostInfo(userSN string, token int64) error {
-	ip, systemType := GetHostInfo()
-
-	var ipPtr, systemTypePtr *string
+func (c *RawClientConnector) InsertTokenUseWithHostInfo(userSN string, token int64) error {
+	ip, systemType := GetHostInfo() // 你已有的函数
+	var ipPtr, sysPtr *string
 	if ip != "" {
 		ipPtr = &ip
 	}
 	if systemType != "" {
-		systemTypePtr = &systemType
+		sysPtr = &systemType
 	}
-
-	return c.InsertTokenUse(userSN, token, ipPtr, systemTypePtr)
+	return c.InsertTokenUse(userSN, token, ipPtr, sysPtr)
 }
 
-func (c *MySQLConnector) Close() error {
-	if c.db != nil {
-		return c.db.Close()
+func (c *RawClientConnector) Close() error {
+	if c != nil && c.conn != nil {
+		return c.conn.Close()
 	}
 	return nil
 }
