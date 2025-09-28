@@ -163,9 +163,9 @@ func (c *commandDialogCmp) View() string {
 	listView := c.commandList
 	radio := c.commandTypeRadio()
 
-	header := t.S().Base.Padding(0, 1, 1, 1).Render(core.Title("Commands", c.width-lipgloss.Width(radio)-5) + " " + radio)
+	header := t.S().Base.Padding(0, 1, 1, 1).Render(core.Title("命令", c.width-lipgloss.Width(radio)-5) + " " + radio)
 	if len(c.userCommands) == 0 {
-		header = t.S().Base.Padding(0, 1, 1, 1).Render(core.Title("Commands", c.width-4))
+		header = t.S().Base.Padding(0, 1, 1, 1).Render(core.Title("命令", c.width-4))
 	}
 	content := lipgloss.JoinVertical(
 		lipgloss.Left,
@@ -190,7 +190,7 @@ func (c *commandDialogCmp) Cursor() *tea.Cursor {
 
 func (c *commandDialogCmp) commandTypeRadio() string {
 	t := styles.CurrentTheme()
-	choices := []string{"System", "User"}
+	choices := []string{"系统", "用户"}
 	iconSelected := "◉"
 	iconUnselected := "○"
 	if c.commandType == SystemCommands {
@@ -261,8 +261,8 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 	commands := []Command{
 		{
 			ID:          "new_session",
-			Title:       "New Session",
-			Description: "start a new session",
+			Title:       "新建会话",
+			Description: "开始一个新的会话",
 			Shortcut:    "ctrl+n",
 			Handler: func(cmd Command) tea.Cmd {
 				return util.CmdHandler(NewSessionsMsg{})
@@ -270,8 +270,8 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 		},
 		{
 			ID:          "switch_session",
-			Title:       "Switch Session",
-			Description: "Switch to a different session",
+			Title:       "切换会话",
+			Description: "切换到不同的会话",
 			Shortcut:    "ctrl+s",
 			Handler: func(cmd Command) tea.Cmd {
 				return util.CmdHandler(SwitchSessionsMsg{})
@@ -279,8 +279,8 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 		},
 		{
 			ID:          "switch_model",
-			Title:       "Switch Model",
-			Description: "Switch to a different model",
+			Title:       "切换模型",
+			Description: "切换到不同的模型",
 			Handler: func(cmd Command) tea.Cmd {
 				return util.CmdHandler(SwitchModelMsg{})
 			},
@@ -291,8 +291,8 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 	if c.sessionID != "" {
 		commands = append(commands, Command{
 			ID:          "Summarize",
-			Title:       "Summarize Session",
-			Description: "Summarize the current session and create a new one with the summary",
+			Title:       "总结并开启新会话",
+			Description: "总结当前会话并创建包含摘要的新会话",
 			Handler: func(cmd Command) tea.Cmd {
 				return util.CmdHandler(CompactMsg{
 					SessionID: c.sessionID,
@@ -311,14 +311,14 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 
 			// Anthropic models: thinking toggle
 			if providerCfg.Type == catwalk.TypeAnthropic {
-				status := "Enable"
+				status := "开启"
 				if selectedModel.Think {
-					status = "Disable"
+					status = "关闭"
 				}
 				commands = append(commands, Command{
 					ID:          "toggle_thinking",
-					Title:       status + " Thinking Mode",
-					Description: "Toggle model thinking for reasoning-capable models",
+					Title:       status + "思考模式",
+					Description: "为支持推理的模型切换思考模式",
 					Handler: func(cmd Command) tea.Cmd {
 						return util.CmdHandler(ToggleThinkingMsg{})
 					},
@@ -329,8 +329,8 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 			if providerCfg.Type == catwalk.TypeOpenAI && model.HasReasoningEffort {
 				commands = append(commands, Command{
 					ID:          "select_reasoning_effort",
-					Title:       "Select Reasoning Effort",
-					Description: "Choose reasoning effort level (low/medium/high)",
+					Title:       "选择推理强度",
+					Description: "选择推理强度级别（低/中/高）",
 					Handler: func(cmd Command) tea.Cmd {
 						return util.CmdHandler(OpenReasoningDialogMsg{})
 					},
@@ -342,8 +342,8 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 	if c.wWidth > 120 && c.sessionID != "" {
 		commands = append(commands, Command{
 			ID:          "toggle_sidebar",
-			Title:       "Toggle Sidebar",
-			Description: "Toggle between compact and normal layout",
+			Title:       "切换侧边栏",
+			Description: "在紧凑和正常布局之间切换",
 			Handler: func(cmd Command) tea.Cmd {
 				return util.CmdHandler(ToggleCompactModeMsg{})
 			},
@@ -355,9 +355,9 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 		if model.SupportsImages {
 			commands = append(commands, Command{
 				ID:          "file_picker",
-				Title:       "Open File Picker",
+				Title:       "打开文件选择器",
 				Shortcut:    "ctrl+f",
-				Description: "Open file picker",
+				Description: "打开文件选择器",
 				Handler: func(cmd Command) tea.Cmd {
 					return util.CmdHandler(OpenFilePickerMsg{})
 				},
@@ -369,9 +369,9 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 	if os.Getenv("EDITOR") != "" {
 		commands = append(commands, Command{
 			ID:          "open_external_editor",
-			Title:       "Open External Editor",
+			Title:       "打开外部编辑器",
 			Shortcut:    "ctrl+o",
-			Description: "Open external editor to compose message",
+			Description: "打开外部编辑器编写消息",
 			Handler: func(cmd Command) tea.Cmd {
 				return util.CmdHandler(OpenExternalEditorMsg{})
 			},
@@ -381,25 +381,25 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 	return append(commands, []Command{
 		{
 			ID:          "toggle_yolo",
-			Title:       "Toggle Yolo Mode",
-			Description: "Toggle yolo mode",
+			Title:       "切换Yolo模式",
+			Description: "切换yolo模式",
 			Handler: func(cmd Command) tea.Cmd {
 				return util.CmdHandler(ToggleYoloModeMsg{})
 			},
 		},
 		{
 			ID:          "toggle_help",
-			Title:       "Toggle Help",
+			Title:       "切换帮助",
 			Shortcut:    "ctrl+g",
-			Description: "Toggle help",
+			Description: "切换帮助显示",
 			Handler: func(cmd Command) tea.Cmd {
 				return util.CmdHandler(ToggleHelpMsg{})
 			},
 		},
 		{
 			ID:          "init",
-			Title:       "Initialize Project",
-			Description: "Create/Update the CRUSH.md memory file",
+			Title:       "初始化项目",
+			Description: "创建/更新CRUSH.md记忆文件",
 			Handler: func(cmd Command) tea.Cmd {
 				return util.CmdHandler(chat.SendMsg{
 					Text: prompt.Initialize(),
@@ -408,8 +408,8 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 		},
 		{
 			ID:          "quit",
-			Title:       "Quit",
-			Description: "Quit",
+			Title:       "退出",
+			Description: "退出程序",
 			Shortcut:    "ctrl+c",
 			Handler: func(cmd Command) tea.Cmd {
 				return util.CmdHandler(QuitMsg{})
