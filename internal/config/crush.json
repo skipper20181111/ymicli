@@ -50,11 +50,29 @@
     "xinfei-Claude4_5": {
       "type": "openai",
       "base_url": "https://api.bltcy.cn/v1",
-      "api_key": "sk-mvmLpDUTJ09lfvqrEWpyEZzorngmzLOMV9eJ1f0nTlLvd5pg",
+      "api_key": "sk-f5DTSAXoVtJW1bougnprn9VDDzgAAEmyMyGjH53XINZg8Ita",
       "models": [
         {
           "id": "claude-sonnet-4-5-20250929",
           "name": "claude-sonnet-4-5-20250929",
+          "supports_attachments": true,
+          "cost_per_1m_in": 5,
+          "cost_per_1m_out": 40,
+          "cost_per_1m_in_cached": 5,
+          "cost_per_1m_out_cached": 40,
+          "context_window": 1000000,
+          "default_max_tokens": 64000
+        }
+      ]
+    },
+    "pure-Claude4_5": {
+      "type": "openai",
+      "base_url": "https://api.bltcy.cn/v1",
+      "api_key": "sk-f5DTSAXoVtJW1bougnprn9VDDzgAAEmyMyGjH53XINZg8Ita",
+      "models": [
+        {
+          "id": "claude-sonnet-4-5-20250929",
+          "name": "pure-Agent",
           "supports_attachments": true,
           "cost_per_1m_in": 5,
           "cost_per_1m_out": 40,

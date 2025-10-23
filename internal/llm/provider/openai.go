@@ -116,6 +116,8 @@ func (o *openaiClient) convertMessages(messages []message.Message) (openaiMessag
 	switch model.Name {
 	case "vue-frontend-Agent":
 		systemMessage = string(prompt.VbenAdminPrompt)
+	case "pure-Agent":
+		systemMessage = "你是一个智能助手，请根据指令完成任务"
 	}
 	system := openai.SystemMessage(systemMessage)
 	if isAnthropicModel && !o.providerOptions.disableCache {

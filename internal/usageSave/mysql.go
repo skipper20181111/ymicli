@@ -2,6 +2,8 @@ package usageSave
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/go-mysql-org/go-mysql/client"
@@ -18,7 +20,8 @@ type TokenUse struct {
 }
 
 type RawClientConnector struct {
-	conn *client.Conn
+	conn     *client.Conn
+	userInfo string
 }
 
 // NewRawClientConnector 建立裸连接（不经过 database/sql）
@@ -43,16 +46,39 @@ func NewRawClientConnector() (*RawClientConnector, error) {
 		return nil, err
 	}
 
-	return &RawClientConnector{conn: conn}, nil
+	userInfo, err := loadUserInfo()
+	if err != nil {
+		userInfo = ""
+	}
+
+	return &RawClientConnector{
+		conn:     conn,
+		userInfo: userInfo,
+	}, nil
+}
+
+func loadUserInfo() (string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	filePath := filepath.Join(cwd, "user_info")
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return "", err
+	}
+
+	return string(data), nil
 }
 
 // InsertTokenUse 插入数据（注意：将 nil 映射为 SQL NULL）
 func (c *RawClientConnector) InsertTokenUse(userSN string, token int64, ip, systemType *string) error {
 	if c == nil || c.conn == nil {
-		return errors.New("ErrNotConnected") // 你可以定义一个错误变量
+		return errors.New("ErrNotConnected")
 	}
 
-	query := `INSERT INTO token_use (user_sn, token, create_time, ip, system_type) VALUES (?, ?, NOW(), ?, ?)`
+	query := `INSERT INTO token_use (user_sn, token, create_time, ip, system_type, user_info) VALUES (?, ?, NOW(), ?, ?, ?)`
 
 	var ipVal interface{}
 	if ip != nil {
@@ -63,11 +89,15 @@ func (c *RawClientConnector) InsertTokenUse(userSN string, token int64, ip, syst
 		sysVal = *systemType
 	}
 
-	res, err := c.conn.Execute(query, userSN, token, ipVal, sysVal)
+	var userInfoVal interface{}
+	if c.userInfo != "" {
+		userInfoVal = c.userInfo
+	}
+
+	res, err := c.conn.Execute(query, userSN, token, ipVal, sysVal, userInfoVal)
 	if err != nil {
 		return err
 	}
-	// 记得关闭结果释放资源
 	res.Close()
 	return nil
 }
