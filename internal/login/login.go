@@ -1,18 +1,25 @@
 package login
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"time"
 )
 
 const (
-	LoginSuccess = `
+	DifyAPIURL     = "https://difyapicore.xinfei-inc.cn/v1/workflows/run"
+	DifyAuthBearer = "app-1GE2x6VUbTSRH58ddrmzhjJr"
+	LoginSuccess   = `
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -112,6 +119,200 @@ func generateRandomString(length int) (string, error) {
 	return hex.EncodeToString(bytes), nil
 }
 
+type CheckTicketRequest struct {
+	ClientID string `json:"clientId"`
+	Ticket   string `json:"ticket"`
+}
+
+type UserAuthDTO struct {
+	AccessToken string `json:"accessToken"`
+	Ticket      string `json:"ticket"`
+	RedirectURL string `json:"redirectUrl"`
+}
+
+type CheckTicketData struct {
+	UserAuthDTO UserAuthDTO `json:"userAuthDTO"`
+	User        any         `json:"user"`
+}
+
+type CheckTicketResponse struct {
+	Suc          bool             `json:"suc"`
+	ErrorContext any              `json:"errorContext"`
+	Data         *CheckTicketData `json:"data"`
+}
+
+type UserInfo struct {
+	UserID    string `json:"userId"`
+	UserName  string `json:"userName"`
+	FullName  string `json:"fullName"`
+	Mobile    string `json:"mobile"`
+	Email     string `json:"email"`
+	JobNumber string `json:"jobNumber"`
+}
+
+type DifyWorkflowInputs struct {
+	Token string `json:"token"`
+}
+
+type DifyWorkflowRequest struct {
+	Inputs DifyWorkflowInputs `json:"inputs"`
+	User   string             `json:"user"`
+}
+
+type DifyWorkflowOutputs struct {
+	Result string `json:"result"`
+}
+
+type DifyWorkflowData struct {
+	ID          string              `json:"id"`
+	WorkflowID  string              `json:"workflow_id"`
+	Status      string              `json:"status"`
+	Outputs     DifyWorkflowOutputs `json:"outputs"`
+	Error       string              `json:"error"`
+	ElapsedTime float64             `json:"elapsed_time"`
+	TotalTokens int                 `json:"total_tokens"`
+	TotalSteps  int                 `json:"total_steps"`
+	CreatedAt   int64               `json:"created_at"`
+	FinishedAt  int64               `json:"finished_at"`
+}
+
+type DifyWorkflowResponse struct {
+	TaskID        string           `json:"task_id"`
+	WorkflowRunID string           `json:"workflow_run_id"`
+	Data          DifyWorkflowData `json:"data"`
+}
+
+type DifyResultUserData struct {
+	UserID    string `json:"userId"`
+	UserName  string `json:"userName"`
+	FullName  string `json:"fullName"`
+	Mobile    string `json:"mobile"`
+	Email     string `json:"email"`
+	JobNumber string `json:"jobNumber"`
+}
+
+type DifyResultData struct {
+	Suc          bool               `json:"suc"`
+	ErrorContext any                `json:"errorContext"`
+	Data         DifyResultUserData `json:"data"`
+}
+
+func checkTicket(ticket string) (*CheckTicketResponse, error) {
+	url := "https://sso.xinfei-inc.cn/ssomng-api/auth-v2/checkTicket"
+	payload := CheckTicketRequest{
+		ClientID: ProID,
+		Ticket:   ticket,
+	}
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("序列化请求失败: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadBytes))
+	if err != nil {
+		return nil, fmt.Errorf("创建请求失败: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("请求SSO失败: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("读取响应失败: %w", err)
+	}
+
+	var result CheckTicketResponse
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("解析响应失败: %w", err)
+	}
+
+	return &result, nil
+}
+
+func saveUserInfo(userInfo *UserInfo) error {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("获取当前工作目录失败: %w", err)
+	}
+
+	filePath := filepath.Join(cwd, "user_info")
+	data, err := json.MarshalIndent(userInfo, "", "  ")
+	if err != nil {
+		return fmt.Errorf("序列化用户信息失败: %w", err)
+	}
+
+	if err := os.WriteFile(filePath, data, 0o644); err != nil {
+		return fmt.Errorf("写入文件失败: %w", err)
+	}
+
+	return nil
+}
+
+func getUserInfo(accessToken string) (*UserInfo, error) {
+	payload := DifyWorkflowRequest{
+		Inputs: DifyWorkflowInputs{
+			Token: accessToken,
+		},
+		User: "abc-123",
+	}
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("序列化请求失败: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", DifyAPIURL, bytes.NewBuffer(payloadBytes))
+	if err != nil {
+		return nil, fmt.Errorf("创建请求失败: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+DifyAuthBearer)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("请求Dify API失败: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("读取响应失败: %w", err)
+	}
+	var workflowResp DifyWorkflowResponse
+	if err := json.Unmarshal(body, &workflowResp); err != nil {
+		return nil, fmt.Errorf("解析Dify响应失败: %w", err)
+	}
+
+	if workflowResp.Data.Status != "succeeded" {
+		return nil, fmt.Errorf("工作流执行失败: %s", workflowResp.Data.Error)
+	}
+
+	var resultData DifyResultData
+	if err := json.Unmarshal([]byte(workflowResp.Data.Outputs.Result), &resultData); err != nil {
+		return nil, fmt.Errorf("解析用户信息失败: %w", err)
+	}
+
+	return &UserInfo{
+		UserID:    resultData.Data.UserID,
+		UserName:  resultData.Data.UserName,
+		FullName:  resultData.Data.FullName,
+		Mobile:    resultData.Data.Mobile,
+		Email:     resultData.Data.Email,
+		JobNumber: resultData.Data.JobNumber,
+	}, nil
+}
+
 // StartLoginFlow 启动SSO登录流程。
 // 它会启动一个临时服务器，打开浏览器，并等待回调。
 // 成功后返回 true，否则返回错误。
@@ -145,27 +346,60 @@ func StartLoginFlow(baseURL string) (bool, error) {
 		if ticket == "" {
 			err := fmt.Errorf("回调请求中缺少 'ticket' 参数")
 			http.Error(w, err.Error(), http.StatusBadRequest)
-			panic(err)
+			errChan <- err
+			return
 		}
 
-		// 向浏览器返回成功信息，让用户知道可以关闭页面
+		// 验证ticket
+		response, err := checkTicket(ticket)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("验证ticket失败: %v", err), http.StatusInternalServerError)
+			errChan <- fmt.Errorf("验证ticket失败: %w", err)
+			return
+		}
+
+		if !response.Suc {
+			http.Error(w, "SSO验证失败", http.StatusUnauthorized)
+			errChan <- fmt.Errorf("SSO验证失败")
+			return
+		}
+
+		if response.Data == nil || response.Data.UserAuthDTO.AccessToken == "" {
+			http.Error(w, "未获取到accessToken", http.StatusInternalServerError)
+			errChan <- fmt.Errorf("未获取到accessToken")
+			return
+		}
+
+		accessToken := response.Data.UserAuthDTO.AccessToken
+
+		// 获取用户信息
+		userInfo, err := getUserInfo(accessToken)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("获取用户信息失败: %v", err), http.StatusInternalServerError)
+			errChan <- fmt.Errorf("获取用户信息失败: %w", err)
+			return
+		}
+
+		// 保存用户信息
+		if err := saveUserInfo(userInfo); err != nil {
+			http.Error(w, fmt.Sprintf("保存用户信息失败: %v", err), http.StatusInternalServerError)
+			errChan <- fmt.Errorf("保存用户信息失败: %w", err)
+			return
+		}
+
+		// 所有操作成功后，向浏览器返回成功页面
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(LoginSuccess))
 
-		// 在一个新的goroutine中处理登录成功逻辑
+		// 在后台关闭服务器
 		go func() {
-			// 在此goroutine结束时，确保服务器被关闭
-			defer func() {
-				// 等待一小段时间确保HTTP响应已发送
-				time.Sleep(500 * time.Millisecond)
-				if err := server.Shutdown(context.Background()); err != nil {
-					panic(err)
-				}
-			}()
-
-			// 只要获取到ticket就认为登录成功
-			resultChan <- true
+			time.Sleep(500 * time.Millisecond)
+			if err := server.Shutdown(context.Background()); err != nil {
+				errChan <- err
+			}
 		}()
+
+		resultChan <- true
 	})
 
 	// 6. 在一个单独的goroutine中启动服务器
