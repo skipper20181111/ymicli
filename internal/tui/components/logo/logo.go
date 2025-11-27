@@ -1,4 +1,4 @@
-// Package logo renders a Crush wordmark in a stylized way.
+// Package logo renders a XFTech wordmark in a stylized way.
 package logo
 
 import (
@@ -19,23 +19,23 @@ type letterform func(bool) string
 
 const diag = `╱`
 
-// Opts are the options for rendering the Crush title art.
+// Opts are the options for rendering the XFTech title art.
 type Opts struct {
 	FieldColor   color.Color // diagonal lines
 	TitleColorA  color.Color // left gradient ramp point
 	TitleColorB  color.Color // right gradient ramp point
-	CharmColor   color.Color // Charm™ text color
+	CharmColor   color.Color // XFTech™ text color
 	VersionColor color.Color // Version text color
 	Width        int         // width of the rendered logo, used for truncation
 }
 
-// Render renders the Crush logo. Set the argument to true to render the narrow
+// Render renders the XFTech logo. Set the argument to true to render the narrow
 // version, intended for use in a sidebar.
 //
 // The compact argument determines whether it renders compact for the sidebar
 // or wider for the main pane.
 func Render(version string, compact bool, o Opts) string {
-	const charm = " Charm™"
+	const charm = " XFTech™"
 
 	fg := func(c color.Color, s string) string {
 		return lipgloss.NewStyle().Foreground(c).Render(s)
@@ -44,11 +44,12 @@ func Render(version string, compact bool, o Opts) string {
 	// Title.
 	const spacing = 1
 	letterforms := []letterform{
-		letterC,
-		letterR,
-		letterU,
-		letterSStylized,
-		letterH,
+		letterX,
+		letterF,
+		letterT,
+		letterE,
+		letterCMy,
+		letterHMy,
 	}
 	stretchIndex := -1 // -1 means no stretching.
 	if !compact {
@@ -115,13 +116,13 @@ func Render(version string, compact bool, o Opts) string {
 	return logo
 }
 
-// SmallRender renders a smaller version of the Crush logo, suitable for
+// SmallRender renders a smaller version of the XFTech logo, suitable for
 // smaller windows or sidebar usage.
 func SmallRender(width int) string {
 	t := styles.CurrentTheme()
-	title := t.S().Base.Foreground(t.Secondary).Render("Charm™")
-	title = fmt.Sprintf("%s %s", title, styles.ApplyBoldForegroundGrad("Crush", t.Secondary, t.Primary))
-	remainingWidth := width - lipgloss.Width(title) - 1 // 1 for the space after "Crush"
+	title := t.S().Base.Foreground(t.Secondary).Render("XFTech™")
+	title = fmt.Sprintf("%s %s", title, styles.ApplyBoldForegroundGrad("Coder", t.Secondary, t.Primary))
+	remainingWidth := width - lipgloss.Width(title) - 1 // 1 for the space after "Coder"
 	if remainingWidth > 0 {
 		lines := strings.Repeat("╱", remainingWidth)
 		title = fmt.Sprintf("%s %s", title, t.S().Base.Foreground(t.Primary).Render(lines))
@@ -343,4 +344,52 @@ func stretchLetterformPart(s string, p letterformProps) string {
 		parts[i] = s
 	}
 	return lipgloss.JoinHorizontal(lipgloss.Top, parts...)
+}
+
+func letterX(stretch bool) string {
+	return heredoc.Doc(`
+▀▄ ▄▀
+  █
+▄▀ ▀▄
+`)
+}
+
+func letterF(stretch bool) string {
+	return heredoc.Doc(`
+█▀▀▀▀
+█▄▄▄▄
+█
+`)
+}
+
+func letterT(stretch bool) string {
+	return heredoc.Doc(`
+▀▀▀█▀▀▀
+   █
+   █
+`)
+}
+
+func letterE(stretch bool) string {
+	return heredoc.Doc(`
+█▀▀▀▀
+█▄▄▄▄
+█▄▄▄▄
+`)
+}
+
+func letterCMy(stretch bool) string {
+	return heredoc.Doc(`
+▄▀▀▀▀
+█
+▀▄▄▄▄
+`)
+}
+
+func letterHMy(stretch bool) string {
+	return heredoc.Doc(`
+█   █
+█▄▄▄█
+█   █
+`)
 }

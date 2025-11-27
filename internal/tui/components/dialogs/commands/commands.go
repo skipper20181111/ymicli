@@ -316,8 +316,8 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 	commands := []Command{
 		{
 			ID:          "new_session",
-			Title:       "New Session",
-			Description: "start a new session",
+			Title:       "新建会话",
+			Description: "创建一个新的会话",
 			Shortcut:    "ctrl+n",
 			Handler: func(cmd Command) tea.Cmd {
 				return util.CmdHandler(NewSessionsMsg{})
@@ -325,8 +325,8 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 		},
 		{
 			ID:          "switch_session",
-			Title:       "Switch Session",
-			Description: "Switch to a different session",
+			Title:       "切换会话",
+			Description: "切换到其他会话",
 			Shortcut:    "ctrl+s",
 			Handler: func(cmd Command) tea.Cmd {
 				return util.CmdHandler(SwitchSessionsMsg{})
@@ -334,8 +334,8 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 		},
 		{
 			ID:          "switch_model",
-			Title:       "Switch Model",
-			Description: "Switch to a different model",
+			Title:       "切换模型",
+			Description: "切换到其他模型",
 			Shortcut:    "ctrl+l",
 			Handler: func(cmd Command) tea.Cmd {
 				return util.CmdHandler(SwitchModelMsg{})
@@ -347,8 +347,8 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 	if c.sessionID != "" {
 		commands = append(commands, Command{
 			ID:          "Summarize",
-			Title:       "Summarize Session",
-			Description: "Summarize the current session and create a new one with the summary",
+			Title:       "总结会话",
+			Description: "总结当前会话并创建带有摘要的新会话",
 			Handler: func(cmd Command) tea.Cmd {
 				return util.CmdHandler(CompactMsg{
 					SessionID: c.sessionID,
@@ -373,8 +373,8 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 				}
 				commands = append(commands, Command{
 					ID:          "toggle_thinking",
-					Title:       status + " Thinking Mode",
-					Description: "Toggle model thinking for reasoning-capable models",
+					Title:       status + " 思考模式",
+					Description: "切换具有推理能力的模型的思考模式",
 					Handler: func(cmd Command) tea.Cmd {
 						return util.CmdHandler(ToggleThinkingMsg{})
 					},
@@ -385,8 +385,8 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 			if len(model.ReasoningLevels) > 0 {
 				commands = append(commands, Command{
 					ID:          "select_reasoning_effort",
-					Title:       "Select Reasoning Effort",
-					Description: "Choose reasoning effort level (low/medium/high)",
+					Title:       "选择推理强度",
+					Description: "选择推理强度等级（低/中/高）",
 					Handler: func(cmd Command) tea.Cmd {
 						return util.CmdHandler(OpenReasoningDialogMsg{})
 					},
@@ -398,8 +398,8 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 	if c.wWidth > 120 && c.sessionID != "" {
 		commands = append(commands, Command{
 			ID:          "toggle_sidebar",
-			Title:       "Toggle Sidebar",
-			Description: "Toggle between compact and normal layout",
+			Title:       "切换侧边栏",
+			Description: "在紧凑和正常布局之间切换",
 			Handler: func(cmd Command) tea.Cmd {
 				return util.CmdHandler(ToggleCompactModeMsg{})
 			},
@@ -411,9 +411,9 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 		if model.SupportsImages {
 			commands = append(commands, Command{
 				ID:          "file_picker",
-				Title:       "Open File Picker",
+				Title:       "打开文件选择器",
 				Shortcut:    "ctrl+f",
-				Description: "Open file picker",
+				Description: "打开文件选择器",
 				Handler: func(cmd Command) tea.Cmd {
 					return util.CmdHandler(OpenFilePickerMsg{})
 				},
@@ -425,9 +425,9 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 	if os.Getenv("EDITOR") != "" {
 		commands = append(commands, Command{
 			ID:          "open_external_editor",
-			Title:       "Open External Editor",
+			Title:       "打开外部编辑器",
 			Shortcut:    "ctrl+o",
-			Description: "Open external editor to compose message",
+			Description: "打开外部编辑器编写消息",
 			Handler: func(cmd Command) tea.Cmd {
 				return util.CmdHandler(OpenExternalEditorMsg{})
 			},
@@ -437,25 +437,25 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 	return append(commands, []Command{
 		{
 			ID:          "toggle_yolo",
-			Title:       "Toggle Yolo Mode",
-			Description: "Toggle yolo mode",
+			Title:       "切换 Yolo 模式",
+			Description: "切换 yolo 模式",
 			Handler: func(cmd Command) tea.Cmd {
 				return util.CmdHandler(ToggleYoloModeMsg{})
 			},
 		},
 		{
 			ID:          "toggle_help",
-			Title:       "Toggle Help",
+			Title:       "切换帮助",
 			Shortcut:    "ctrl+g",
-			Description: "Toggle help",
+			Description: "切换帮助",
 			Handler: func(cmd Command) tea.Cmd {
 				return util.CmdHandler(ToggleHelpMsg{})
 			},
 		},
 		{
 			ID:          "init",
-			Title:       "Initialize Project",
-			Description: fmt.Sprintf("Create/Update the %s memory file", config.Get().Options.InitializeAs),
+			Title:       "初始化项目",
+			Description: fmt.Sprintf("创建/更新 %s 记忆文件", config.Get().Options.InitializeAs),
 			Handler: func(cmd Command) tea.Cmd {
 				initPrompt, err := agent.InitializePrompt(*config.Get())
 				if err != nil {
@@ -468,8 +468,8 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 		},
 		{
 			ID:          "quit",
-			Title:       "Quit",
-			Description: "Quit",
+			Title:       "退出",
+			Description: "退出",
 			Shortcut:    "ctrl+c",
 			Handler: func(cmd Command) tea.Cmd {
 				return util.CmdHandler(QuitMsg{})

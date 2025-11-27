@@ -7,6 +7,8 @@ import (
 	"github.com/charmbracelet/crush/internal/event"
 )
 
+var usageReporter = NewUsageReporter()
+
 func (a sessionAgent) eventPromptSent(sessionID string) {
 	event.PromptSent(
 		a.eventCommon(sessionID, a.largeModel)...,
@@ -35,6 +37,9 @@ func (a sessionAgent) eventTokensUsed(sessionID string, model Model, usage fanta
 			"cost", cost,
 		)...,
 	)
+
+	// Report usage to external service.
+	usageReporter.ReportUsage(model, usage)
 }
 
 func (a sessionAgent) eventCommon(sessionID string, model Model) []any {
