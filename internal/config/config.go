@@ -1,6 +1,7 @@
 package config
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"log/slog"
@@ -14,6 +15,8 @@ import (
 	"github.com/charmbracelet/catwalk/pkg/catwalk"
 	"github.com/charmbracelet/crush/internal/csync"
 	"github.com/charmbracelet/crush/internal/env"
+	"github.com/charmbracelet/crush/internal/oauth"
+	"github.com/charmbracelet/crush/internal/oauth/claude"
 	"github.com/invopop/jsonschema"
 	"github.com/tidwall/sjson"
 )
@@ -92,6 +95,8 @@ type ProviderConfig struct {
 	Type catwalk.Type `json:"type,omitempty" jsonschema:"description=Provider type that determines the API format,enum=openai,enum=openai-compat,enum=anthropic,enum=gemini,enum=azure,enum=vertexai,default=openai"`
 	// The provider's API key.
 	APIKey string `json:"api_key,omitempty" jsonschema:"description=API key for authentication with the provider,example=$OPENAI_API_KEY"`
+	// OAuthToken for providers that use OAuth2 authentication.
+	OAuthToken *oauth.Token `json:"oauth,omitempty" jsonschema:"description=OAuth2 token for authentication with the provider"`
 	// Marks the provider as disabled.
 	Disable bool `json:"disable,omitempty" jsonschema:"description=Whether this provider is disabled,default=false"`
 
@@ -110,6 +115,22 @@ type ProviderConfig struct {
 
 	// The provider models
 	Models []catwalk.Model `json:"models,omitempty" jsonschema:"description=List of models available from this provider"`
+}
+
+func (pc *ProviderConfig) SetupClaudeCode() {
+	pc.APIKey = fmt.Sprintf("Bearer %s", pc.OAuthToken.AccessToken)
+	pc.SystemPromptPrefix = "You are Claude Code, Anthropic's official CLI for Claude."
+	pc.ExtraHeaders["anthropic-version"] = "2023-06-01"
+
+	value := pc.ExtraHeaders["anthropic-beta"]
+	const want = "oauth-2025-04-20"
+	if !strings.Contains(value, want) {
+		if value != "" {
+			value += ","
+		}
+		value += want
+	}
+	pc.ExtraHeaders["anthropic-beta"] = value
 }
 
 type MCPType string
@@ -448,16 +469,71 @@ func (c *Config) SetConfigField(key string, value any) error {
 	return nil
 }
 
-func (c *Config) SetProviderAPIKey(providerID, apiKey string) error {
-	// First save to the config file
-	err := c.SetConfigField("providers."+providerID+".api_key", apiKey)
-	if err != nil {
-		return fmt.Errorf("failed to save API key to config file: %w", err)
+func (c *Config) RefreshOAuthToken(ctx context.Context, providerID string) error {
+	providerConfig, exists := c.Providers.Get(providerID)
+	if !exists {
+		return fmt.Errorf("provider %s not found", providerID)
 	}
 
-	providerConfig, exists := c.Providers.Get(providerID)
+	if providerConfig.OAuthToken == nil {
+		return fmt.Errorf("provider %s does not have an OAuth token", providerID)
+	}
+
+	// Only Anthropic provider uses OAuth for now
+	if providerID != string(catwalk.InferenceProviderAnthropic) {
+		return fmt.Errorf("OAuth refresh not supported for provider %s", providerID)
+	}
+
+	newToken, err := claude.RefreshToken(ctx, providerConfig.OAuthToken.RefreshToken)
+	if err != nil {
+		return fmt.Errorf("failed to refresh OAuth token for provider %s: %w", providerID, err)
+	}
+
+	slog.Info("Successfully refreshed OAuth token in background", "provider", providerID)
+	providerConfig.OAuthToken = newToken
+	providerConfig.APIKey = fmt.Sprintf("Bearer %s", newToken.AccessToken)
+	providerConfig.SetupClaudeCode()
+
+	c.Providers.Set(providerID, providerConfig)
+
+	if err := cmp.Or(
+		c.SetConfigField(fmt.Sprintf("providers.%s.api_key", providerID), newToken.AccessToken),
+		c.SetConfigField(fmt.Sprintf("providers.%s.oauth", providerID), newToken),
+	); err != nil {
+		return fmt.Errorf("failed to persist refreshed token: %w", err)
+	}
+
+	return nil
+}
+
+func (c *Config) SetProviderAPIKey(providerID string, apiKey any) error {
+	var providerConfig ProviderConfig
+	var exists bool
+	var setKeyOrToken func()
+
+	switch v := apiKey.(type) {
+	case string:
+		if err := c.SetConfigField(fmt.Sprintf("providers.%s.api_key", providerID), v); err != nil {
+			return fmt.Errorf("failed to save api key to config file: %w", err)
+		}
+		setKeyOrToken = func() { providerConfig.APIKey = v }
+	case *oauth.Token:
+		if err := cmp.Or(
+			c.SetConfigField(fmt.Sprintf("providers.%s.api_key", providerID), v.AccessToken),
+			c.SetConfigField(fmt.Sprintf("providers.%s.oauth", providerID), v),
+		); err != nil {
+			return err
+		}
+		setKeyOrToken = func() {
+			providerConfig.APIKey = v.AccessToken
+			providerConfig.OAuthToken = v
+			providerConfig.SetupClaudeCode()
+		}
+	}
+
+	providerConfig, exists = c.Providers.Get(providerID)
 	if exists {
-		providerConfig.APIKey = apiKey
+		setKeyOrToken()
 		c.Providers.Set(providerID, providerConfig)
 		return nil
 	}
@@ -477,12 +553,12 @@ func (c *Config) SetProviderAPIKey(providerID, apiKey string) error {
 			Name:         foundProvider.Name,
 			BaseURL:      foundProvider.APIEndpoint,
 			Type:         foundProvider.Type,
-			APIKey:       apiKey,
 			Disable:      false,
 			ExtraHeaders: make(map[string]string),
 			ExtraParams:  make(map[string]string),
 			Models:       foundProvider.Models,
 		}
+		setKeyOrToken()
 	} else {
 		return fmt.Errorf("provider with ID %s not found in known providers", providerID)
 	}
