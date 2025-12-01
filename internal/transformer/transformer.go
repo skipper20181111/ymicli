@@ -524,6 +524,10 @@ func ConvertAnthropicStreamToOpenAI(ctx context.Context, openaiModel string, bod
 				Delta struct {
 					StopReason string `json:"stop_reason"`
 				} `json:"delta"`
+				Usage struct {
+					InputTokens  int `json:"input_tokens"`
+					OutputTokens int `json:"output_tokens"`
+				} `json:"usage"`
 			}
 			if err := json.Unmarshal([]byte(payload), &obj); err != nil {
 				continue
@@ -542,7 +546,24 @@ func ConvertAnthropicStreamToOpenAI(ctx context.Context, openaiModel string, bod
 				default:
 					finishReason = "stop"
 				}
+				// 发送 finish_reason chunk
 				send(map[string]interface{}{}, finishReason)
+
+				// 发送 usage chunk（OpenAI 标准）
+				if obj.Usage.InputTokens > 0 || obj.Usage.OutputTokens > 0 {
+					usageChunk := map[string]interface{}{
+						"id":      fmt.Sprintf("chatcmplchunk_%d", time.Now().UnixNano()),
+						"object":  "chat.completion.chunk",
+						"model":   openaiModel,
+						"choices": []map[string]interface{}{{"index": 0, "delta": map[string]interface{}{}}},
+						"usage": map[string]interface{}{
+							"prompt_tokens":     obj.Usage.InputTokens,
+							"completion_tokens": obj.Usage.OutputTokens,
+							"total_tokens":      obj.Usage.InputTokens + obj.Usage.OutputTokens,
+						},
+					}
+					emit(usageChunk)
+				}
 			}
 
 		case "message_stop":
@@ -589,11 +610,6 @@ func StartServerWithPort(port string) error {
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 120 * time.Second,
 	}
-
-	fmt.Printf("🚀 Claude API 转发服务启动在 http://localhost%s\n", port)
-	fmt.Printf("📝 OpenAI 兼容端点: http://localhost%s%s\n", port, EndpointChatCompletions)
-	fmt.Printf("🔧 转发到: %s (模型: %s)\n", DefaultBaseURL, DefaultModel)
-	fmt.Println("---")
 
 	return server.ListenAndServe()
 }
@@ -744,15 +760,8 @@ func setAuthHeaders(req *http.Request) {
 // loggingMiddleware 日志中间件
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
 		sw := &statusWriter{ResponseWriter: w, statusCode: 200}
 		next.ServeHTTP(sw, r)
-		fmt.Printf("%s %s %s %d %s\n",
-			r.RemoteAddr,
-			r.Method,
-			r.URL.Path,
-			sw.statusCode,
-			time.Since(start))
 	})
 }
 

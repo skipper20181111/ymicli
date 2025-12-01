@@ -12,6 +12,7 @@ import (
 )
 
 func main() {
+	//login.Login()
 	go transformer.StartServer()
 	if os.Getenv("CRUSH_PROFILE") != "" {
 		go func() {
