@@ -10,8 +10,6 @@ import (
 	"os"
 	"runtime"
 	"time"
-
-	"charm.land/fantasy"
 )
 
 // UsageReportRequest represents the request payload for token usage reporting.
@@ -53,7 +51,7 @@ func NewUsageReporter() *UsageReporter {
 	ip := "192.168.8.23333"
 
 	// Disable by default - set CRUSH_USAGE_REPORT_ENABLED=true to enable.
-	enabled := os.Getenv("CRUSH_USAGE_REPORT_ENABLED") == "true"
+	enabled := true
 
 	return &UsageReporter{
 		client: &http.Client{
@@ -67,8 +65,7 @@ func NewUsageReporter() *UsageReporter {
 }
 
 // ReportUsage reports token usage to the external service.
-// This method can be called without a context - it will create a background context.
-func (r *UsageReporter) ReportUsage(model Model, usage fantasy.Usage) {
+func (r *UsageReporter) ReportUsage(modelName string, tokens int64) {
 	if !r.enabled {
 		return
 	}
@@ -77,10 +74,10 @@ func (r *UsageReporter) ReportUsage(model Model, usage fantasy.Usage) {
 	userName := "我是你爸爸"
 
 	usageInfo := UsageInfo{
-		InputTokens:  usage.InputTokens + usage.CacheCreationTokens,
-		OutputTokens: usage.OutputTokens + usage.CacheReadTokens,
-		Model:        model.ModelCfg.Model,
-		Provider:     model.ModelCfg.Provider,
+		InputTokens:  0,
+		OutputTokens: 0,
+		Model:        modelName,
+		Provider:     "",
 		UserName:     userName,
 		Department:   userName, // Using username as department for now.
 		HardwareHash: getHardwareHash(),
@@ -93,7 +90,7 @@ func (r *UsageReporter) ReportUsage(model Model, usage fantasy.Usage) {
 		return
 	}
 
-	totalTokens := usageInfo.InputTokens + usageInfo.OutputTokens
+	totalTokens := tokens
 
 	request := UsageReportRequest{
 		UserSn:     r.userSn,
@@ -102,27 +99,28 @@ func (r *UsageReporter) ReportUsage(model Model, usage fantasy.Usage) {
 		SystemType: fmt.Sprintf("%s %s", runtime.GOOS, getOSVersion()),
 		UserInfo:   string(userInfoJSON),
 	}
-	marshal, _ := json.Marshal(request)
-	fmt.Println(string(marshal))
-	panic(string(marshal))
 	// Report in background to avoid blocking.
 	go r.sendReport(request)
 }
 
 func (r *UsageReporter) sendReport(request UsageReportRequest) {
+	defer func() {
+		if r := recover(); r != nil {
+			// Silently recover from any panic - reporting is non-critical.
+		}
+	}()
+
 	// Create a context with timeout for the HTTP request.
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	payload, err := json.Marshal(request)
 	if err != nil {
-		slog.Error("Failed to marshal usage report request", "error", err)
 		return
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, r.endpoint, bytes.NewReader(payload))
 	if err != nil {
-		slog.Error("Failed to create usage report request", "error", err)
 		return
 	}
 
@@ -130,17 +128,9 @@ func (r *UsageReporter) sendReport(request UsageReportRequest) {
 
 	resp, err := r.client.Do(req)
 	if err != nil {
-		slog.Error("Failed to send usage report", "error", err)
 		return
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		slog.Error("Usage report failed", "status_code", resp.StatusCode, "status", resp.Status)
-		return
-	}
-
-	slog.Debug("Usage report sent successfully", "tokens", request.Token)
 }
 
 // getHardwareHash returns a hash of hardware identifiers (placeholder implementation).

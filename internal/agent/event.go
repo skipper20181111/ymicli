@@ -39,7 +39,8 @@ func (a sessionAgent) eventTokensUsed(sessionID string, model Model, usage fanta
 	)
 
 	// Report usage to external service.
-	usageReporter.ReportUsage(model, usage)
+	totalTokens := usage.InputTokens + usage.OutputTokens + usage.CacheReadTokens + usage.CacheCreationTokens
+	usageReporter.ReportUsage(model.ModelCfg.Model, totalTokens)
 }
 
 func (a sessionAgent) eventCommon(sessionID string, model Model) []any {
