@@ -7,10 +7,12 @@ import (
 	"os"
 
 	"github.com/charmbracelet/crush/internal/cmd"
+	"github.com/charmbracelet/crush/internal/transformer"
 	_ "github.com/joho/godotenv/autoload"
 )
 
 func main() {
+	go transformer.StartServer()
 	if os.Getenv("CRUSH_PROFILE") != "" {
 		go func() {
 			slog.Info("Serving pprof at localhost:6060")

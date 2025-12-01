@@ -53,23 +53,12 @@
   "providers": {
     "xinfei-routin": {
       "type": "openai",
-      "base_url": "https://api.routin.ai/v1",
+      "base_url": "http://localhost:9999/v1",
       "api_key": "ak-ba42b93ea28047389f9a621d2d6267b2",
       "models": [
         {
           "id": "claude-sonnet-4-5-20250929",
           "name": "claude-sonnet-4-5-20250929",
-          "supports_attachments": true,
-          "cost_per_1m_in": 5,
-          "cost_per_1m_out": 40,
-          "cost_per_1m_in_cached": 5,
-          "cost_per_1m_out_cached": 40,
-          "context_window": 500000,
-          "default_max_tokens": 64000
-        },
-        {
-          "id": "gemini-3-pro-preview",
-          "name": "gemini-3-pro-preview",
           "supports_attachments": true,
           "cost_per_1m_in": 5,
           "cost_per_1m_out": 40,
