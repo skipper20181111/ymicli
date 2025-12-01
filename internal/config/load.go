@@ -653,7 +653,19 @@ func loadFromConfigPaths(configPaths []string) (*Config, error) {
 
 		configs = append(configs, fd)
 	}
-	configs = append(configs, bytes.NewReader(crushJson))
+
+	// 尝试从数据库获取配置，如果成功则覆盖 crushJson
+	configJson := crushJson
+	db, err := NewDBConnector()
+	if err == nil {
+		defer db.Close()
+		dbConfig, err := db.QueryClaudeConfigByPath("crush")
+		if err == nil && dbConfig.Providers != nil {
+			configJson = []byte(*dbConfig.Providers)
+		}
+	}
+
+	configs = append(configs, bytes.NewReader(configJson))
 	return loadFromReaders(configs)
 }
 

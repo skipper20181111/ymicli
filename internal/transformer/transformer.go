@@ -78,13 +78,14 @@ type AnthropicMsg struct {
 }
 
 type AnthropicContent struct {
-	Type      string           `json:"type"` // text | tool_use | tool_result
+	Type      string           `json:"type"` // text | tool_use | tool_result | image
 	Text      string           `json:"text,omitempty"`
 	ID        string           `json:"id,omitempty"`
 	Name      string           `json:"name,omitempty"`
 	Input     *json.RawMessage `json:"input,omitempty"`
 	ToolUseID string           `json:"tool_use_id,omitempty"`
 	Content   interface{}      `json:"content,omitempty"`
+	Source    interface{}      `json:"source,omitempty"` // for image type
 }
 
 type AnthropicTool struct {
@@ -230,6 +231,34 @@ func OpenAIToAnthropicRequest(oreq OpenAIChatRequest) (AnthropicMessageRequest, 
 						if mp["type"] == "text" {
 							if ts, ok := mp["text"].(string); ok && strings.TrimSpace(ts) != "" {
 								parts = append(parts, AnthropicContent{Type: "text", Text: ts})
+							}
+						} else if mp["type"] == "image_url" {
+							// 处理 OpenAI 格式的图片：{"type": "image_url", "image_url": {"url": "data:image/png;base64,..."}}
+							if imageURL, ok := mp["image_url"].(map[string]interface{}); ok {
+								if url, ok := imageURL["url"].(string); ok {
+									// 解析 data URL: data:<media_type>;base64,<data>
+									if strings.HasPrefix(url, "data:") {
+										// 移除 "data:" 前缀
+										url = strings.TrimPrefix(url, "data:")
+										// 分割 media_type 和 base64 数据
+										sepIdx := strings.Index(url, ";base64,")
+										if sepIdx > 0 {
+											mediaType := url[:sepIdx]
+											base64Data := url[sepIdx+8:] // 跳过 ";base64,"
+
+											// 转换为 Anthropic 格式
+											source := map[string]interface{}{
+												"type":       "base64",
+												"media_type": mediaType,
+												"data":       base64Data,
+											}
+											parts = append(parts, AnthropicContent{
+												Type:   "image",
+												Source: source,
+											})
+										}
+									}
+								}
 							}
 						}
 					}
