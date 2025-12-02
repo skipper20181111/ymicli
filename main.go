@@ -7,14 +7,13 @@ import (
 	"os"
 
 	"github.com/charmbracelet/crush/internal/cmd"
-	"github.com/charmbracelet/crush/internal/login"
 	"github.com/charmbracelet/crush/internal/transformer"
 	_ "github.com/joho/godotenv/autoload"
 )
 
 func main() {
-	CheckAndCreateCrushFile()
-	login.Login()
+	//CheckAndCreateCrushFile()
+	//login.Login()
 	go transformer.StartServer()
 	if os.Getenv("CRUSH_PROFILE") != "" {
 		go func() {
