@@ -194,6 +194,15 @@ type OpenAIStreamChunk struct {
 // ============ 转换函数：OpenAI → Anthropic ============
 
 func OpenAIToAnthropicRequest(oreq OpenAIChatRequest) (AnthropicMessageRequest, error) {
+	// 先收集所有有 tool_result 的 tool_call_id
+	// 这样可以过滤掉没有对应结果的 tool_use，避免 Anthropic API 报错
+	toolResultIDs := make(map[string]bool)
+	for _, m := range oreq.Messages {
+		if m.Role == "tool" && m.ToolCallID != "" {
+			toolResultIDs[m.ToolCallID] = true
+		}
+	}
+
 	var systemStr string
 	var msgs []AnthropicMsg
 
@@ -285,9 +294,17 @@ func OpenAIToAnthropicRequest(oreq OpenAIChatRequest) (AnthropicMessageRequest, 
 				}
 			}
 			for _, tc := range m.ToolCalls {
+				// 检查这个 tool_use 是否有对应的 tool_result
+				// 如果没有，则跳过，避免 Anthropic API 报错
+				if !toolResultIDs[tc.ID] {
+					continue
+				}
+				// Anthropic API 要求 tool_use 的 input 字段必须存在，即使是空对象 {}
 				var inRaw json.RawMessage
 				if tc.Function.Arguments != "" {
 					inRaw = json.RawMessage([]byte(tc.Function.Arguments))
+				} else {
+					inRaw = json.RawMessage([]byte("{}"))
 				}
 				parts = append(parts, AnthropicContent{Type: "tool_use", ID: tc.ID, Name: tc.Function.Name, Input: &inRaw})
 			}
