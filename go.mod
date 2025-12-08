@@ -4,8 +4,8 @@ go 1.25.0
 
 require (
 	charm.land/bubbles/v2 v2.0.0-rc.1
-	charm.land/bubbletea/v2 v2.0.0-rc.2.0.20251126220703-2a0096c500a7
-	charm.land/fantasy v0.3.2
+	charm.land/bubbletea/v2 v2.0.0-rc.2.0.20251202162339-5fa38b798f16
+	charm.land/fantasy v0.4.0
 	charm.land/lipgloss/v2 v2.0.0-beta.3.0.20251119143523-0334bb4562ca
 	charm.land/x/vcr v0.1.1
 	github.com/JohannesKaufmann/html-to-markdown v1.6.0
@@ -21,12 +21,12 @@ require (
 	github.com/charmbracelet/fang v0.4.4
 	github.com/charmbracelet/glamour/v2 v2.0.0-20251106195642-800eb8175930
 	github.com/charmbracelet/log/v2 v2.0.0-20251106192421-eb64aaa963a0
-	github.com/charmbracelet/ultraviolet v0.0.0-20251116181749-377898bcce38
+	github.com/charmbracelet/ultraviolet v0.0.0-20251202162030-ecc8c1ae4b2b
 	github.com/charmbracelet/x/ansi v0.11.2
 	github.com/charmbracelet/x/exp/charmtone v0.0.0-20250708181618-a60a724ba6c3
 	github.com/charmbracelet/x/exp/golden v0.0.0-20250806222409-83e3a29d542f
 	github.com/charmbracelet/x/exp/ordered v0.1.0
-	github.com/charmbracelet/x/exp/slice v0.0.0-20251118172736-77d017256798
+	github.com/charmbracelet/x/exp/slice v0.0.0-20251201173703-9f73bfd934ff
 	github.com/charmbracelet/x/powernap v0.0.0-20251015113943-25f979b54ad4
 	github.com/charmbracelet/x/term v0.2.2
 	github.com/denisbrodbeck/machineid v1.0.1
@@ -55,6 +55,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/tidwall/sjson v1.2.5
 	github.com/zeebo/xxh3 v1.0.2
+	golang.org/x/mod v0.30.0
 	golang.org/x/sync v0.18.0
 	golang.org/x/text v0.31.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
@@ -72,7 +73,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.10.0 // indirect
 	github.com/RealAlexandreAI/json-repair v0.0.14 // indirect
 	github.com/andybalholm/cascadia v1.3.3 // indirect
-	github.com/aws/aws-sdk-go-v2 v1.39.6 // indirect
+	github.com/aws/aws-sdk-go-v2 v1.40.0 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.3 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.27.27 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.27 // indirect
@@ -108,7 +109,7 @@ require (
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
-	github.com/goccy/go-yaml v1.18.0 // indirect
+	github.com/goccy/go-yaml v1.19.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/jsonschema-go v0.3.0 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
@@ -120,7 +121,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/kaptinlin/go-i18n v0.2.0 // indirect
 	github.com/kaptinlin/jsonpointer v0.4.6 // indirect
-	github.com/kaptinlin/jsonschema v0.6.1 // indirect
+	github.com/kaptinlin/jsonschema v0.6.2 // indirect
 	github.com/kaptinlin/messageformat-go v0.4.6 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
@@ -176,7 +177,7 @@ require (
 	golang.org/x/term v0.37.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
 	google.golang.org/api v0.239.0 // indirect
-	google.golang.org/genai v1.34.0 // indirect
+	google.golang.org/genai v1.36.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250603155806-513f23925822 // indirect
 	google.golang.org/grpc v1.74.2 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect

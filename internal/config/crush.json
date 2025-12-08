@@ -51,32 +51,43 @@
 
   },
   "providers": {
-    "xinfei-routin": {
+    "xinfei-bltcy": {
       "type": "openai",
-      "base_url": "http://localhost:9999/v1",
-      "api_key": "ak-ba42b93ea28047389f9a621d2d6267b2",
+      "base_url": "https://api.bltcy.ai/v1",
+      "api_key": "sk-F86v2p0Cy0wTxXxQMktTItFgsxc58DIitDrDX0igR7ojNxQ2",
       "models": [
         {
           "id": "claude-sonnet-4-5-20250929",
-          "name": "claude-sonnet-4-5-20250929",
-          "supports_attachments": true,
-          "cost_per_1m_in": 5,
-          "cost_per_1m_out": 40,
-          "cost_per_1m_in_cached": 5,
-          "cost_per_1m_out_cached": 40,
-          "context_window": 500000,
-          "default_max_tokens": 64000
+          "name": "Claude Sonnet 4.5",
+          "cost_per_1m_in": 3,
+          "cost_per_1m_out": 15,
+          "cost_per_1m_in_cached": 3.75,
+          "cost_per_1m_out_cached": 0.3,
+          "context_window": 200000,
+          "default_max_tokens": 50000
+
         },
         {
           "id": "claude-opus-4-5-20251101",
-          "name": "claude-opus-4-5-20251101",
-          "supports_attachments": true,
+          "name": "Claude Opus 4.5",
           "cost_per_1m_in": 5,
-          "cost_per_1m_out": 40,
-          "cost_per_1m_in_cached": 5,
-          "cost_per_1m_out_cached": 40,
-          "context_window": 500000,
+          "cost_per_1m_out": 25,
+          "cost_per_1m_in_cached": 6.25,
+          "cost_per_1m_out_cached": 0.5,
+          "context_window": 200000,
+          "default_max_tokens": 50000
+
+        },
+        {
+          "id": "gemini-3-pro-preview",
+          "name": "Gemini 3 Pro (Preview)",
+          "cost_per_1m_in": 2,
+          "cost_per_1m_out": 12,
+          "cost_per_1m_in_cached": 0,
+          "cost_per_1m_out_cached": 0.2,
+          "context_window": 1048576,
           "default_max_tokens": 64000
+
         }
       ]
     }

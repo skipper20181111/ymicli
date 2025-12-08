@@ -429,6 +429,9 @@ func AnthropicToOpenAIResponse(a AnthropicMessageResponse, openaiModel string) (
 
 // ============ 流式转换：Anthropic SSE → OpenAI ============
 
+// StreamTimeout 是流式事件之间的最大等待时间，超过此时间将返回超时错误
+var StreamTimeout = 10 * time.Second
+
 func ConvertAnthropicStreamToOpenAI(ctx context.Context, openaiModel string, body io.Reader, emit func(chunk map[string]interface{})) error {
 	roleSent := false
 	nextToolIdx := 0
@@ -449,177 +452,204 @@ func ConvertAnthropicStreamToOpenAI(ctx context.Context, openaiModel string, bod
 		emit(ch)
 	}
 
+	// 发送错误给客户端
+	sendError := func(message string) {
+		errChunk := map[string]interface{}{
+			"error": map[string]interface{}{
+				"message": message,
+				"type":    "stream_error",
+			},
+		}
+		emit(errChunk)
+	}
+
+	// 带超时的行读取
+	type lineResult struct {
+		line string
+		err  error
+	}
+	lineChan := make(chan lineResult, 1)
+
 	for {
+		// 启动 goroutine 读取下一行
+		go func() {
+			line, err := reader.ReadString('\n')
+			lineChan <- lineResult{line: line, err: err}
+		}()
+
+		// 等待读取结果或超时
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		default:
-		}
-
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				break
+		case <-time.After(StreamTimeout):
+			// 流超时，发送错误并结束
+			sendError(fmt.Sprintf("Stream timeout: no data received for %v", StreamTimeout))
+			return fmt.Errorf("stream timeout after %v", StreamTimeout)
+		case result := <-lineChan:
+			if result.err != nil {
+				if errors.Is(result.err, io.EOF) {
+					return nil
+				}
+				return result.err
 			}
-			break
-		}
-
-		line = strings.TrimSpace(line)
-		if line == "" || !strings.HasPrefix(line, "data:") {
-			continue
-		}
-
-		payload := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
-		if payload == "" || payload == "[DONE]" {
-			continue
-		}
-
-		// 解析事件类型
-		var baseEvent struct {
-			Type string `json:"type"`
-		}
-		if err := json.Unmarshal([]byte(payload), &baseEvent); err != nil {
-			continue
-		}
-
-		switch baseEvent.Type {
-		case "message_start":
-			if !roleSent {
-				send(map[string]interface{}{"role": "assistant"}, "")
-				roleSent = true
-			}
-
-		case "content_block_start":
-			var obj struct {
-				Type         string                 `json:"type"`
-				Index        int                    `json:"index"`
-				ContentBlock map[string]interface{} `json:"content_block"`
-			}
-			if err := json.Unmarshal([]byte(payload), &obj); err != nil {
+			line := strings.TrimSpace(result.line)
+			if line == "" || !strings.HasPrefix(line, "data:") {
 				continue
 			}
-			if t, _ := obj.ContentBlock["type"].(string); t == "tool_use" {
-				id, _ := obj.ContentBlock["id"].(string)
-				name, _ := obj.ContentBlock["name"].(string)
-				toolIdx := nextToolIdx
-				contentIdxToToolIdx[obj.Index] = toolIdx
-				delta := map[string]interface{}{
-					"tool_calls": []map[string]interface{}{
-						{
-							"id":    id,
-							"type":  "function",
-							"index": toolIdx,
-							"function": map[string]interface{}{
-								"name": name,
-							},
-						},
-					},
-				}
-				send(delta, "")
-				nextToolIdx++
+
+			payload := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+			if payload == "" || payload == "[DONE]" {
+				continue
 			}
 
-		case "content_block_delta":
-			var obj struct {
-				Type  string                 `json:"type"`
-				Index int                    `json:"index"`
-				Delta map[string]interface{} `json:"delta"`
+			// 解析事件类型
+			var baseEvent struct {
+				Type string `json:"type"`
 			}
-			if err := json.Unmarshal([]byte(payload), &obj); err != nil {
+			if err := json.Unmarshal([]byte(payload), &baseEvent); err != nil {
 				continue
 			}
-			if obj.Delta == nil {
-				continue
-			}
-			if obj.Delta["type"] == "text_delta" {
-				if s, _ := obj.Delta["text"].(string); s != "" {
-					send(map[string]interface{}{"content": s}, "")
+
+			switch baseEvent.Type {
+			case "message_start":
+				if !roleSent {
+					send(map[string]interface{}{"role": "assistant"}, "")
+					roleSent = true
 				}
-			} else if obj.Delta["type"] == "input_json_delta" {
-				piece, _ := obj.Delta["partial_json"].(string)
-				if piece == "" {
-					if v, ok := obj.Delta["delta"].(string); ok {
-						piece = v
-					}
+
+			case "content_block_start":
+				var obj struct {
+					Type         string                 `json:"type"`
+					Index        int                    `json:"index"`
+					ContentBlock map[string]interface{} `json:"content_block"`
 				}
-				toolIdx, ok := contentIdxToToolIdx[obj.Index]
-				if !ok {
+				if err := json.Unmarshal([]byte(payload), &obj); err != nil {
 					continue
 				}
-				toolArgsByToolIdx[toolIdx] += piece
-				delta := map[string]interface{}{
-					"tool_calls": []map[string]interface{}{
-						{
-							"index": toolIdx,
-							"type":  "function",
-							"function": map[string]interface{}{
-								"arguments": piece,
+				if t, _ := obj.ContentBlock["type"].(string); t == "tool_use" {
+					id, _ := obj.ContentBlock["id"].(string)
+					name, _ := obj.ContentBlock["name"].(string)
+					toolIdx := nextToolIdx
+					contentIdxToToolIdx[obj.Index] = toolIdx
+					delta := map[string]interface{}{
+						"tool_calls": []map[string]interface{}{
+							{
+								"id":    id,
+								"type":  "function",
+								"index": toolIdx,
+								"function": map[string]interface{}{
+									"name": name,
+								},
 							},
 						},
-					},
+					}
+					send(delta, "")
+					nextToolIdx++
 				}
-				send(delta, "")
-			}
 
-		case "content_block_stop":
-			// ignore
-
-		case "message_delta":
-			var obj struct {
-				Type  string `json:"type"`
-				Delta struct {
-					StopReason string `json:"stop_reason"`
-				} `json:"delta"`
-				Usage struct {
-					InputTokens  int `json:"input_tokens"`
-					OutputTokens int `json:"output_tokens"`
-				} `json:"usage"`
-			}
-			if err := json.Unmarshal([]byte(payload), &obj); err != nil {
-				continue
-			}
-			if obj.Delta.StopReason != "" {
-				finishReason := "stop"
-				switch obj.Delta.StopReason {
-				case "end_turn":
-					finishReason = "stop"
-				case "max_tokens":
-					finishReason = "length"
-				case "tool_use":
-					finishReason = "tool_calls"
-				case "stop_sequence":
-					finishReason = "stop"
-				default:
-					finishReason = "stop"
+			case "content_block_delta":
+				var obj struct {
+					Type  string                 `json:"type"`
+					Index int                    `json:"index"`
+					Delta map[string]interface{} `json:"delta"`
 				}
-				// 发送 finish_reason chunk
-				send(map[string]interface{}{}, finishReason)
-
-				// 发送 usage chunk（OpenAI 标准）
-				if obj.Usage.InputTokens > 0 || obj.Usage.OutputTokens > 0 {
-					usageChunk := map[string]interface{}{
-						"id":      fmt.Sprintf("chatcmplchunk_%d", time.Now().UnixNano()),
-						"object":  "chat.completion.chunk",
-						"model":   openaiModel,
-						"choices": []map[string]interface{}{{"index": 0, "delta": map[string]interface{}{}}},
-						"usage": map[string]interface{}{
-							"prompt_tokens":     obj.Usage.InputTokens,
-							"completion_tokens": obj.Usage.OutputTokens,
-							"total_tokens":      obj.Usage.InputTokens + obj.Usage.OutputTokens,
+				if err := json.Unmarshal([]byte(payload), &obj); err != nil {
+					continue
+				}
+				if obj.Delta == nil {
+					continue
+				}
+				if obj.Delta["type"] == "text_delta" {
+					if s, _ := obj.Delta["text"].(string); s != "" {
+						send(map[string]interface{}{"content": s}, "")
+					}
+				} else if obj.Delta["type"] == "input_json_delta" {
+					piece, _ := obj.Delta["partial_json"].(string)
+					if piece == "" {
+						if v, ok := obj.Delta["delta"].(string); ok {
+							piece = v
+						}
+					}
+					toolIdx, ok := contentIdxToToolIdx[obj.Index]
+					if !ok {
+						continue
+					}
+					toolArgsByToolIdx[toolIdx] += piece
+					delta := map[string]interface{}{
+						"tool_calls": []map[string]interface{}{
+							{
+								"index": toolIdx,
+								"type":  "function",
+								"function": map[string]interface{}{
+									"arguments": piece,
+								},
+							},
 						},
 					}
-					emit(usageChunk)
+					send(delta, "")
 				}
+
+			case "content_block_stop":
+				// ignore
+
+			case "message_delta":
+				var obj struct {
+					Type  string `json:"type"`
+					Delta struct {
+						StopReason string `json:"stop_reason"`
+					} `json:"delta"`
+					Usage struct {
+						InputTokens  int `json:"input_tokens"`
+						OutputTokens int `json:"output_tokens"`
+					} `json:"usage"`
+				}
+				if err := json.Unmarshal([]byte(payload), &obj); err != nil {
+					continue
+				}
+				if obj.Delta.StopReason != "" {
+					finishReason := "stop"
+					switch obj.Delta.StopReason {
+					case "end_turn":
+						finishReason = "stop"
+					case "max_tokens":
+						finishReason = "length"
+					case "tool_use":
+						finishReason = "tool_calls"
+					case "stop_sequence":
+						finishReason = "stop"
+					default:
+						finishReason = "stop"
+					}
+					// 发送 finish_reason chunk
+					send(map[string]interface{}{}, finishReason)
+
+					// 发送 usage chunk（OpenAI 标准）
+					if obj.Usage.InputTokens > 0 || obj.Usage.OutputTokens > 0 {
+						usageChunk := map[string]interface{}{
+							"id":      fmt.Sprintf("chatcmplchunk_%d", time.Now().UnixNano()),
+							"object":  "chat.completion.chunk",
+							"model":   openaiModel,
+							"choices": []map[string]interface{}{{"index": 0, "delta": map[string]interface{}{}}},
+							"usage": map[string]interface{}{
+								"prompt_tokens":     obj.Usage.InputTokens,
+								"completion_tokens": obj.Usage.OutputTokens,
+								"total_tokens":      obj.Usage.InputTokens + obj.Usage.OutputTokens,
+							},
+						}
+						emit(usageChunk)
+					}
+				}
+
+			case "message_stop":
+				// message_stop marks the end of the stream
+				return nil
+
+			case "ping":
+				// ignore
+
+			case "error":
+				// ignore
 			}
-
-		case "message_stop":
-			// finish_reason already sent in message_delta
-
-		case "ping":
-			// ignore
-
-		case "error":
-			// ignore
 		}
 	}
 	return nil

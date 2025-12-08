@@ -347,7 +347,7 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 	if c.sessionID != "" {
 		commands = append(commands, Command{
 			ID:          "Summarize",
-			Title:       "总结会话",
+			Title:       "总结会话开启新会话",
 			Description: "总结当前会话并创建带有摘要的新会话",
 			Handler: func(cmd Command) tea.Cmd {
 				return util.CmdHandler(CompactMsg{
