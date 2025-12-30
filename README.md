@@ -232,6 +232,11 @@ $HOME/.local/share/crush/crush.json
 %LOCALAPPDATA%\crush\crush.json
 ```
 
+> [!TIP]
+> You can override the user and data config locations by setting:
+> * `CRUSH_GLOBAL_CONFIG`
+> * `CRUSH_GLOBAL_DATA`
+
 ### LSPs
 
 Crush can use LSPs for additional context to help inform its decisions, just
@@ -275,6 +280,7 @@ using `$(echo $VAR)` syntax.
       "args": ["/path/to/mcp-server.js"],
       "timeout": 120,
       "disabled": false,
+      "disabled_tools": ["some-tool-name"],
       "env": {
         "NODE_ENV": "production"
       }
@@ -284,6 +290,7 @@ using `$(echo $VAR)` syntax.
       "url": "https://api.githubcopilot.com/mcp/",
       "timeout": 120,
       "disabled": false,
+      "disabled_tools": ["create_issue", "create_pull_request"],
       "headers": {
         "Authorization": "Bearer $GH_PAT"
       }
@@ -334,6 +341,69 @@ permissions. Use this with care.
 
 You can also skip all permission prompts entirely by running Crush with the
 `--yolo` flag. Be very, very careful with this feature.
+
+### Disabling Built-In Tools
+
+If you'd like to prevent Crush from using certain built-in tools entirely, you
+can disable them via the `options.disabled_tools` list. Disabled tools are
+completely hidden from the agent.
+
+```json
+{
+  "$schema": "https://charm.land/crush.json",
+  "options": {
+    "disabled_tools": [
+      "bash",
+      "sourcegraph"
+    ]
+  }
+}
+```
+
+To disable tools from MCP servers, see the [MCP config section](#mcps).
+
+### Agent Skills
+
+Crush supports the [Agent Skills](https://agentskills.io) open standard for
+extending agent capabilities with reusable skill packages. Skills are folders
+containing a `SKILL.md` file with instructions that Crush can discover and
+activate on demand.
+
+Skills are discovered from:
+
+- `~/.config/crush/skills/` on Unix (default, can be overridden with `CRUSH_SKILLS_DIR`)
+- `%LOCALAPPDATA%\crush\skills\` on Windows (default, can be overridden with `CRUSH_SKILLS_DIR`)
+- Additional paths configured via `options.skills_paths`
+
+```jsonc
+{
+  "$schema": "https://charm.land/crush.json",
+  "options": {
+    "skills_paths": [
+      "~/.config/crush/skills", // Windows: "%LOCALAPPDATA%\\crush\\skills",
+      "./project-skills"
+    ]
+  }
+}
+```
+
+You can get started with example skills from [anthropics/skills](https://github.com/anthropics/skills):
+
+```bash
+# Unix
+mkdir -p ~/.config/crush/skills
+cd ~/.config/crush/skills
+git clone https://github.com/anthropics/skills.git _temp
+mv _temp/skills/* . && rm -rf _temp
+```
+
+```powershell
+# Windows (PowerShell)
+mkdir -Force "$env:LOCALAPPDATA\crush\skills"
+cd "$env:LOCALAPPDATA\crush\skills"
+git clone https://github.com/anthropics/skills.git _temp
+mv _temp/skills/* . ; rm -r -force _temp
+```
 
 ### Initialization
 

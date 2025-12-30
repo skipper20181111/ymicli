@@ -17,15 +17,15 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"testing"
 
 	"github.com/charmbracelet/catwalk/pkg/catwalk"
+	"github.com/charmbracelet/crush/internal/agent/hyper"
 	"github.com/charmbracelet/crush/internal/csync"
 	"github.com/charmbracelet/crush/internal/env"
-	"github.com/charmbracelet/crush/internal/event"
 	"github.com/charmbracelet/crush/internal/fsext"
 	"github.com/charmbracelet/crush/internal/home"
 	"github.com/charmbracelet/crush/internal/log"
-	"github.com/charmbracelet/crush/internal/oauth/claude"
 	powernapConfig "github.com/charmbracelet/x/powernap/pkg/config"
 )
 
@@ -194,6 +194,7 @@ func (c *Config) configureProviders(env env.Env, resolver VariableResolver, know
 			Name:               p.Name,
 			BaseURL:            p.APIEndpoint,
 			APIKey:             p.APIKey,
+			APIKeyTemplate:     p.APIKey, // Store original template for re-resolution
 			OAuthToken:         config.OAuthToken,
 			Type:               p.Type,
 			Disable:            config.Disable,
@@ -204,27 +205,13 @@ func (c *Config) configureProviders(env env.Env, resolver VariableResolver, know
 			Models:             p.Models,
 		}
 
-		if p.ID == catwalk.InferenceProviderAnthropic && config.OAuthToken != nil {
-			if config.OAuthToken.IsExpired() {
-				newToken, err := claude.RefreshToken(context.TODO(), config.OAuthToken.RefreshToken)
-				if err == nil {
-					slog.Info("Successfully refreshed Anthropic OAuth token")
-					config.OAuthToken = newToken
-					prepared.OAuthToken = newToken
-					if err := cmp.Or(
-						c.SetConfigField("providers.anthropic.api_key", newToken.AccessToken),
-						c.SetConfigField("providers.anthropic.oauth", newToken),
-					); err != nil {
-						return err
-					}
-				} else {
-					slog.Error("Failed to refresh Anthropic OAuth token", "error", err)
-					event.Error(err)
-				}
-			} else {
-				slog.Info("Using existing non-expired Anthropic OAuth token")
-			}
+		switch {
+		case p.ID == catwalk.InferenceProviderAnthropic && config.OAuthToken != nil:
 			prepared.SetupClaudeCode()
+		case p.ID == catwalk.InferenceProviderCopilot:
+			if config.OAuthToken != nil {
+				prepared.SetupGitHubCopilot()
+			}
 		}
 
 		switch p.ID {
@@ -296,7 +283,7 @@ func (c *Config) configureProviders(env env.Env, resolver VariableResolver, know
 		if providerConfig.Type == "" {
 			providerConfig.Type = catwalk.TypeOpenAICompat
 		}
-		if !slices.Contains(catwalk.KnownProviderTypes(), providerConfig.Type) {
+		if !slices.Contains(catwalk.KnownProviderTypes(), providerConfig.Type) && providerConfig.Type != hyper.Name {
 			slog.Warn("Skipping custom provider due to unsupported provider type", "provider", id)
 			c.Providers.Del(id)
 			continue
@@ -347,6 +334,9 @@ func (c *Config) setDefaults(workingDir, dataDir string) {
 	if c.Options.ContextPaths == nil {
 		c.Options.ContextPaths = []string{}
 	}
+	if c.Options.SkillsPaths == nil {
+		c.Options.SkillsPaths = []string{}
+	}
 	if dataDir != "" {
 		c.Options.DataDirectory = dataDir
 	} else if c.Options.DataDirectory == "" {
@@ -379,6 +369,12 @@ func (c *Config) setDefaults(workingDir, dataDir string) {
 	c.Options.ContextPaths = append(defaultContextPaths, c.Options.ContextPaths...)
 	slices.Sort(c.Options.ContextPaths)
 	c.Options.ContextPaths = slices.Compact(c.Options.ContextPaths)
+
+	// Add the default skills directory if not already present.
+	defaultSkillsDir := GlobalSkillsDir()
+	if !slices.Contains(c.Options.SkillsPaths, defaultSkillsDir) {
+		c.Options.SkillsPaths = append([]string{defaultSkillsDir}, c.Options.SkillsPaths...)
+	}
 
 	if str, ok := os.LookupEnv("CRUSH_DISABLE_PROVIDER_AUTO_UPDATE"); ok {
 		c.Options.DisableProviderAutoUpdate, _ = strconv.ParseBool(str)
@@ -710,7 +706,7 @@ func hasAWSCredentials(env env.Env) bool {
 		return true
 	}
 
-	if _, err := os.Stat(filepath.Join(home.Dir(), ".aws/credentials")); err == nil {
+	if _, err := os.Stat(filepath.Join(home.Dir(), ".aws/credentials")); err == nil && !testing.Testing() {
 		return true
 	}
 
@@ -719,19 +715,22 @@ func hasAWSCredentials(env env.Env) bool {
 
 // GlobalConfig returns the global configuration file path for the application.
 func GlobalConfig() string {
-	xdgConfigHome := os.Getenv("XDG_CONFIG_HOME")
-	if xdgConfigHome != "" {
+	if crushGlobal := os.Getenv("CRUSH_GLOBAL_CONFIG"); crushGlobal != "" {
+		return filepath.Join(crushGlobal, fmt.Sprintf("%s.json", appName))
+	}
+	if xdgConfigHome := os.Getenv("XDG_CONFIG_HOME"); xdgConfigHome != "" {
 		return filepath.Join(xdgConfigHome, appName, fmt.Sprintf("%s.json", appName))
 	}
-
 	return filepath.Join(home.Dir(), ".config", appName, fmt.Sprintf("%s.json", appName))
 }
 
 // GlobalConfigData returns the path to the main data directory for the application.
 // this config is used when the app overrides configurations instead of updating the global config.
 func GlobalConfigData() string {
-	xdgDataHome := os.Getenv("XDG_DATA_HOME")
-	if xdgDataHome != "" {
+	if crushData := os.Getenv("CRUSH_GLOBAL_DATA"); crushData != "" {
+		return filepath.Join(crushData, fmt.Sprintf("%s.json", appName))
+	}
+	if xdgDataHome := os.Getenv("XDG_DATA_HOME"); xdgDataHome != "" {
 		return filepath.Join(xdgDataHome, appName, fmt.Sprintf("%s.json", appName))
 	}
 
@@ -739,10 +738,10 @@ func GlobalConfigData() string {
 	// for windows, it should be in `%LOCALAPPDATA%/crush/`
 	// for linux and macOS, it should be in `$HOME/.local/share/crush/`
 	if runtime.GOOS == "windows" {
-		localAppData := os.Getenv("LOCALAPPDATA")
-		if localAppData == "" {
-			localAppData = filepath.Join(os.Getenv("USERPROFILE"), "AppData", "Local")
-		}
+		localAppData := cmp.Or(
+			os.Getenv("LOCALAPPDATA"),
+			filepath.Join(os.Getenv("USERPROFILE"), "AppData", "Local"),
+		)
 		return filepath.Join(localAppData, appName, fmt.Sprintf("%s.json", appName))
 	}
 
@@ -762,4 +761,26 @@ func isInsideWorktree() bool {
 		"--is-inside-work-tree",
 	).CombinedOutput()
 	return err == nil && strings.TrimSpace(string(bts)) == "true"
+}
+
+// GlobalSkillsDir returns the default directory for Agent Skills.
+// Skills in this directory are auto-discovered and their files can be read
+// without permission prompts.
+func GlobalSkillsDir() string {
+	if crushSkills := os.Getenv("CRUSH_SKILLS_DIR"); crushSkills != "" {
+		return crushSkills
+	}
+	if xdgConfigHome := os.Getenv("XDG_CONFIG_HOME"); xdgConfigHome != "" {
+		return filepath.Join(xdgConfigHome, appName, "skills")
+	}
+
+	if runtime.GOOS == "windows" {
+		localAppData := cmp.Or(
+			os.Getenv("LOCALAPPDATA"),
+			filepath.Join(os.Getenv("USERPROFILE"), "AppData", "Local"),
+		)
+		return filepath.Join(localAppData, appName, "skills")
+	}
+
+	return filepath.Join(home.Dir(), ".config", appName, "skills")
 }
